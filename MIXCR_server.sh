@@ -7,6 +7,7 @@ for i in $(ls *.fastq.gz | rev | cut -c 12- | rev | uniq)
 do
 echo $i
 mixcr align -p rna-seq -s hsa -f -r ${i}aligments_report.txt -t 20 -OallowPartialAlignments=true ${i}R1.fastq.gz ${i}R2.fastq.gz ${i}alignments.vdjca
+
 echo ${i}R1.fastq.gz
 echo ${i}R2.fastq.gz
 done
@@ -36,7 +37,7 @@ for i in $(ls *alignments_extended.vdjca | rev | cut -c 26- | rev | uniq)
 
 do
 echo $i
-mixcr assemble -r ${i}clonotypes_report.txt -i ${i}index_file ${i}alignments_extended.vdjca ${i}output.clns
+mixcr assemble -r ${i}clonotypes_report.txt -i ${i}index_file -ObadQualityThreshold=15 ${i}alignments_extended.vdjca ${i}output.clns
 
 done
 
@@ -46,17 +47,18 @@ done
 ##Extract Alignments
 for i in $(ls *alignments_extended.vdjca | rev | cut -c 26- | rev | uniq)
 
+##Run with the options to export
 do
 echo $i
-mixcr exportAlignments -readId -sequence -cloneId ${i}index_file -vGenes -dGenes -jGenes ${i}alignments_extended.vdjca ${i}alignments.txt
+mixcr exportAlignments -f -readId -sequence -cloneId ${i}index_file -vHit -dHit -jHit -vGene -dGene -jGene -vAlignment -dAlignment -jAlignment -defaultAnchorPoints -nFeature CDR3 -aaFeature CDR3 ${i}alignments_extended.vdjca ${i}alignments.txt
 
 done
 
 ##Extract Clones
+##6. Extract Clones
 for i in $(ls *alignments_extended.vdjca | rev | cut -c 26- | rev | uniq)
-
 do
 echo $i
-mixcr exportClones ....
+mixcr exportClones -f -cloneId -sequence -count -vHit -jHit -vAlignment -jAlignment -nFeature CDR3 -aaFeature CDR3 ${i}output.clns ${i}clones.txt
 
 done
