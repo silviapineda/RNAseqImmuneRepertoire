@@ -15,6 +15,7 @@ print(x)
 ### Date: summer, 2017 
 ############################################################################################
 library(entropy)
+library(plyr)
 
 working_directory<-"/Users/Pinedasans/ImmuneRep_RNAseq/"
 setwd(working_directory)
@@ -124,23 +125,48 @@ capture<-capture.df[order(rownames(capture.df)),]
 
 ##Total IG reads
 summaryMatrix$IG_Reads<-summaryMatrix$IGH_Reads+summaryMatrix$IGK_Reads+summaryMatrix$IGL_Reads
-
+summaryMatrix$T_Reads<-summaryMatrix$TRA_Reads+summaryMatrix$TRB_Reads+summaryMatrix$TRD_Reads+summaryMatrix$TRG_Reads
+  
 ###Analysis in Overall Ab expression
-summaryMatrix$IG_expression<-summaryMatrix$IG_Reads/(summaryMatrix$IG_Reads+as.numeric(capture$uniquelyMappedReads))
-summaryMatrix$IGH_expression<-summaryMatrix$IGH_Reads/(summaryMatrix$IGH_Reads+as.numeric(capture$uniquelyMappedReads))
-summaryMatrix$IGK_expression<-summaryMatrix$IGK_Reads/(summaryMatrix$IGK_Reads+as.numeric(capture$uniquelyMappedReads))
-summaryMatrix$IGL_expression<-summaryMatrix$IGL_Reads/(summaryMatrix$IGL_Reads+as.numeric(capture$uniquelyMappedReads))
+summaryMatrix$IG_expression<-summaryMatrix$IG_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$IGH_expression<-summaryMatrix$IGH_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$IGK_expression<-summaryMatrix$IGK_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$IGL_expression<-summaryMatrix$IGL_Reads/as.numeric(capture$uniquelyMappedReads)
 
-summaryMatrix$T_expression<-summaryMatrix$T_Reads/(summaryMatrix$T_Reads+as.numeric(capture$uniquelyMappedReads))
-summaryMatrix$TRA_expression<-summaryMatrix$TRA_Reads/(summaryMatrix$TRA_Reads+as.numeric(capture$uniquelyMappedReads))
-summaryMatrix$TRB_expression<-summaryMatrix$TRB_Reads/(summaryMatrix$TRB_Reads+as.numeric(capture$uniquelyMappedReads))
-summaryMatrix$TRD_expression<-summaryMatrix$TRD_Reads/(summaryMatrix$TRD_Reads+as.numeric(capture$uniquelyMappedReads))
-summaryMatrix$TRG_expression<-summaryMatrix$TRG_Reads/(summaryMatrix$TRG_Reads+as.numeric(capture$uniquelyMappedReads))
+summaryMatrix$T_expression<-summaryMatrix$T_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$TRA_expression<-summaryMatrix$TRA_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$TRB_expression<-summaryMatrix$TRB_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$TRD_expression<-summaryMatrix$TRD_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$TRG_expression<-summaryMatrix$TRG_Reads/as.numeric(capture$uniquelyMappedReads)
+
+###Ratio
+summaryMatrix$Alpha_Beta_ratio_expression<-(summaryMatrix$TRA_expression+summaryMatrix$TRB_expression)/summaryMatrix$T_expression
+summaryMatrix$KappaLambda_ratio_expression <- (summaryMatrix$IGK_expression / summaryMatrix$IGL_expression)
+
+
+############################################################
+## Calculate the gene expression per each indiviudal gene ##
+############################################################
+Vgene_counts<-data.matrix(table(alignmentData$bestVGene,alignmentData$Sample))
+Vgene_counts<-Vgene_counts[,which(colnames(Vgene_counts)!="M2" & colnames(Vgene_counts)!="M3" & colnames(Vgene_counts)!="M4" )]
+Vgene_counts<-Vgene_counts[-1,]
+Vgene_length<-read.csv("Data/VgeneLength.csv")
+id_gene<-match(rownames(Vgene_counts),Vgene_length$Gene.name)
+#Vgene_length[id_gene,"length"]
+
+Vgene_expression<-matrix(NA,nrow(Vgene_counts),ncol(Vgene_counts))
+for(i in 1:dim(Vgene_counts)[1]){
+  norm<-as.numeric(capture$uniquelyMappedReads)*Vgene_length[id_gene[i],"length"]
+  Vgene_expression[i,]<-1000*(Vgene_counts[i,]/norm)
+}
+rownames(Vgene_expression)<-rownames(Vgene_counts)
+colnames(Vgene_expression)<-colnames(Vgene_counts)
+
 clin<-factor(substr(rownames(capture),1,1))
 clin<-revalue(clin, c("C"="CMR", "H"="AMR" , "N" = "STA"))
 clin<-relevel(clin,ref="STA")
 
 repertoireResults<-summaryMatrix
-save(repertoireResults,clin,file="Data/RepertoireResults.Rdata")
+save(repertoireResults,clin, Vgene_expression,file="Data/RepertoireResults.Rdata")
 
 
