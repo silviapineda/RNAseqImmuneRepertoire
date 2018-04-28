@@ -166,7 +166,6 @@ clin<-factor(substr(rownames(capture),1,1))
 clin<-revalue(clin, c("C"="CMR", "H"="AMR" , "N" = "STA"))
 clin<-relevel(clin,ref="STA")
 
-repertoireResults<-summaryMatrix
-save(repertoireResults,clin, Vgene_expression,file="Data/RepertoireResults.Rdata")
+save(summaryMatrix,clin, Vgene_expression,file="Data/RepertoireResults.Rdata")
 
 
