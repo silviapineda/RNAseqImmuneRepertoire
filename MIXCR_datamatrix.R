@@ -48,14 +48,14 @@ alignmentData$Gene <- coalesce(alignGeneV, alignGeneD, alignGeneJ)
 ### Clonal Matrix ###
 #####################
 
-cloneFiles <- list.files("Clones")
+cloneFiles <- list.files("Data/MIXCR_clones/")
 clonalData <- c()
 
 for (i in cloneFiles)
 {
   #print(i)
   
-  clone <- read.delim(paste("Clones/", i, sep = ""), quote = "")
+  clone <- read.delim(paste("Data/MIXCR_clones/", i, sep = ""), quote = "")
   clone$Sample <- substr(i, 1, nchar(i)-11)
   
   clonalData <- rbind(clonalData, clone)
@@ -69,4 +69,4 @@ clonalData$Gene <- coalesce(cloneGeneV, cloneGeneD, cloneGeneJ)
 
 
 # Save the data
-save(alignmentData, clonalData, file = "dataset_MIXCR.Rdata")
+save(alignmentData, clonalData, file = "Data/dataset_MIXCR.Rdata")
