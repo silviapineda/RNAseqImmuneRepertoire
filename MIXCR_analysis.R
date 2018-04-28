@@ -21,9 +21,9 @@ library(ggplot2)
 working_directory<-"/Users/Pinedasans/ImmuneRep_RNAseq/"
 setwd(working_directory)
 
+load("Data/repertoireResults.Rdata")
 
-
-
+##### Analysis of the different reads from MIXCR to find association with clinical outcome
 COLOR=brewer.pal(3,"Set2")
 tiff("Boxplot_IG_expression.tiff",res=300,w=2000,h=2000)
 boxplot(summaryMatrix$IG_expression~clin,col=COLOR)
@@ -46,10 +46,10 @@ boxplot(summaryMatrix$TRB_expression~clin,col=COLOR,main=c("TRB expression"))
 boxplot(summaryMatrix$TRD_expression~clin,col=COLOR,main=c("TRD expression"))
 boxplot(summaryMatrix$TRG_expression~clin,col=COLOR,main=c("TRG expression"))
 dev.off()
-summary(glm(summaryMatrix$TRA_expression~clin))
-summary(glm(summaryMatrix$TRB_expression~clin))
-summary(glm(summaryMatrix$TRD_expression~clin))
-summary(glm(summaryMatrix$TRG_expression~clin))
+summary(glm(summaryMatrix$TRA_expression~clin)) #(STA vs AMR p=0.002)
+summary(glm(summaryMatrix$TRB_expression~clin)) #(STA vs AMR p=0.03)
+summary(glm(summaryMatrix$TRD_expression~clin)) #(STA vs CMR p=0.00008 STA vs AMR p=0.0002)
+summary(glm(summaryMatrix$TRG_expression~clin)) #(STA vs CMR p=0.06 STA vs AMR p=0.01)
 
 tiff("Boxplot_alphabeta.tiff",res=300,w=2000,h=2000)
 boxplot(summaryMatrix$Alpha_Beta~clin,col=COLOR,main="TRA+TRB/TRD+TRG ratio")
@@ -64,7 +64,6 @@ ggplot(plot_ratio, aes(transplant_outcomes, ratio, fill = transplant_outcomes)) 
   geom_boxplot() + scale_fill_manual(values = COLOR) +
   ylab(expression(paste(alpha,beta,"/",gamma,delta,"_ratio"))) + xlab("") + ylim(.85, 1)
 dev.off()
-
 
 
 
