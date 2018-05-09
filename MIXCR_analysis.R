@@ -66,4 +66,44 @@ ggplot(plot_ratio, aes(transplant_outcomes, ratio, fill = transplant_outcomes)) 
 dev.off()
 
 
+##### Clinical Data Analysis #######
+clin_data<-read.csv("Data/ClinicalData.csv")
 
+id_clin<-match(rownames(summaryMatrix),clin_data$Individual_id)
+clin_data<-clin_data[id_clin,]
+clin_data$clin<-clin
+
+summary(glm(summaryMatrix$TRG_expression~clin_data$DSA_HLA.class..0.neg..1.class.I..2.class.II..3.class.I.and.II.)) #
+boxplot(summaryMatrix$Alpha_Beta~clin_data$DSA_HLA.class..0.neg..1.class.I..2.class.II..3.class.I.and.II.,col=COLOR)
+
+
+
+#####################
+#### GTEX data ######
+####################
+load("Data/SummaryMatrixReadsFromMIXCR_GTEX.Rdata")
+
+ratio<-c(summaryMatrix$Alpha_Beta_ratio_expression,summaryMatrix_Everything$AlphaBeta_Percentage)
+clin2<-factor(c(as.character(clin),rep("GTEx",length(summaryMatrix_Everything$AlphaBeta_Percentage))))
+summary(glm(ratio~relevel(clin2,ref="GTEx"))) #
+boxplot(ratio~clin2,col=COLOR)
+
+
+gtex_id<-read.csv("Data/GTEX/SraRunTable_blood_1691.csv")
+individual_id<-gtex_id[match(rownames(summaryMatrix_Everything),gtex_id$Run_s),"submitted_subject_id_s"]
+gtex_phenotype_data<-read.csv("Data/GTEX/phs000424.v7.pht002742.v7.p2.c1.GTEx_Subject_Phenotypes.GRU.csv")
+
+###clasify diseases by renal, others and unknown
+gtex_phenotype_data$causeOfDeath<-ifelse(gtex_phenotype_data$DTHCOD=="acute renal failure" | 
+gtex_phenotype_data$DTHCOD=="acute renal failure secondary to polycystic kidney disease" | gtex_phenotype_data$DTHCOD=="end-stage renal disease"
+| gtex_phenotype_data$DTHCOD=="ESRD" | gtex_phenotype_data$DTHCOD=="esrd (end stage renal disease)" | gtex_phenotype_data$DTHCOD=="failure, renal" 
+| gtex_phenotype_data$DTHCOD=="Kidney diseases" | gtex_phenotype_data$DTHCOD=="kidney failure" | gtex_phenotype_data$DTHCOD=="renal failure" | gtex_phenotype_data$DTHCOD=="Renal failure","kidney-related",
+ifelse(gtex_phenotype_data$DTHCOD=="death - cause unknown" | gtex_phenotype_data$DTHCOD=="unknown" | gtex_phenotype_data$DTHCOD=="unknown cause of death" 
+       | gtex_phenotype_data$DTHCOD=="unknown, do not have a copy of the death certificate or an ME report" 
+       | gtex_phenotype_data$DTHCOD=="Unknown, do not have a copy of the death certificate or an ME report", "Unknown","Other-causes"))
+
+COD<-gtex_phenotype_data[match(individual_id,gtex_phenotype_data$SUBJID),"causeOfDeath"]
+clin3<-factor(c(as.character(clin),as.character(COD)))
+
+summary(glm(ratio~relevel(clin3,ref="STA"))) #
+boxplot(ratio~clin3,col=COLOR)
