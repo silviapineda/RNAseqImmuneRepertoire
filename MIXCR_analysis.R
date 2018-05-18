@@ -17,6 +17,8 @@ print(x)
 library("RColorBrewer")
 library(plyr)
 library(ggplot2)
+library(gridExtra)
+library(grid)
 
 working_directory<-"/Users/Pinedasans/ImmuneRep_RNAseq/"
 setwd(working_directory)
@@ -24,46 +26,87 @@ setwd(working_directory)
 load("Data/repertoireResults.Rdata")
 
 ##### Analysis of the different reads from MIXCR to find association with clinical outcome
+
+###Summary of the IG's
+mean(summaryMatrix$IGH_Reads[which(clin=="STA")])
+mean(summaryMatrix$IGH_Reads[which(clin=="AMR")])
+mean(summaryMatrix$IGH_Reads[which(clin=="CMR")])
+
+mean(summaryMatrix$IGK_Reads[which(clin=="STA")])
+mean(summaryMatrix$IGK_Reads[which(clin=="AMR")])
+mean(summaryMatrix$IGK_Reads[which(clin=="CMR")])
+
+mean(summaryMatrix$IGL_Reads[which(clin=="STA")])
+mean(summaryMatrix$IGL_Reads[which(clin=="AMR")])
+mean(summaryMatrix$IGL_Reads[which(clin=="CMR")])
+
+
 COLOR=brewer.pal(3,"Set2")
-tiff("Boxplot_IG_expression.tiff",res=300,w=2000,h=2000)
-boxplot(summaryMatrix$IG_expression~clin,col=COLOR)
+summaryMatrix<-cbind(data.frame(summaryMatrix),clin)
+# Percent TRA & TRB of total T-reads
+tiff("Results/MIXCR/Boxplot_IG_expression.tiff",res=300,w=2500,h=2000)
+g1<-ggplot(summaryMatrix, aes(clin, IGH_expression, fill = clin)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("IGH expression") + xlab("")
+g2<-ggplot(summaryMatrix, aes(clin, IGK_expression, fill = clin)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("IGK expression") + xlab("")
+g3<-ggplot(summaryMatrix, aes(clin, IGK_expression, fill = clin)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("IGK expression") + xlab("")
+grid.arrange(g1,g2,g3,ncol=2)
 dev.off()
 
-boxplot(summaryMatrix$IGH_expression~clin,col=COLOR)
-boxplot(summaryMatrix$IGK_expression~clin,col=COLOR)
-boxplot(summaryMatrix$IGL_expression~clin,col=COLOR)
+####Summary of the TC's
+mean(summaryMatrix$TRA_Reads[which(clin=="STA")])
+mean(summaryMatrix$TRA_Reads[which(clin=="AMR")])
+mean(summaryMatrix$TRA_Reads[which(clin=="CMR")])
 
+mean(summaryMatrix$TRB_Reads[which(clin=="STA")])
+mean(summaryMatrix$TRB_Reads[which(clin=="AMR")])
+mean(summaryMatrix$TRB_Reads[which(clin=="CMR")])
 
-tiff("Boxplot_T_expression.tiff",res=300,w=2000,h=2000)
-boxplot(summaryMatrix$TRG_expression~clin,col=COLOR,main="T expression")
+mean(summaryMatrix$TRG_Reads[which(clin=="STA")])
+mean(summaryMatrix$TRG_Reads[which(clin=="AMR")])
+mean(summaryMatrix$TRG_Reads[which(clin=="CMR")])
+
+mean(summaryMatrix$TRD_Reads[which(clin=="STA")])
+mean(summaryMatrix$TRD_Reads[which(clin=="AMR")])
+mean(summaryMatrix$TRD_Reads[which(clin=="CMR")])
+
+tiff("Results/MIXCR/Boxplot_T_expression.tiff",res=300,w=2000,h=2000)
+boxplot(summaryMatrix$T_expression~clin,col=COLOR,main="T expression")
 dev.off()
 summary(glm(summaryMatrix$T_expression~clin)) #p(STA vs AMR)=0.03
 
-tiff("Boxplot_TRs_expression.tiff",res=300,w=3000,h=3000)
-par(mfrow=c(2,2))
-boxplot(summaryMatrix$TRA_expression~clin,col=COLOR,main=c("TRA expression"))
-boxplot(summaryMatrix$TRB_expression~clin,col=COLOR,main=c("TRB expression"))
-boxplot(summaryMatrix$TRD_expression~clin,col=COLOR,main=c("TRD expression"))
-boxplot(summaryMatrix$TRG_expression~clin,col=COLOR,main=c("TRG expression"))
+tiff("Results/MIXCR/Boxplot_TRs_expression.tiff",res=300,w=2500,h=2000)
+g1<-ggplot(summaryMatrix, aes(clin, TRA_expression, fill = clin)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRA expression") + xlab("")
+g2<-ggplot(summaryMatrix, aes(clin, TRB_expression, fill = clin)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRB expression") + xlab("")
+g3<-ggplot(summaryMatrix, aes(clin, TRG_expression, fill = clin)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRG expression") + xlab("")
+g4<-ggplot(summaryMatrix, aes(clin, TRD_expression, fill = clin)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRD expression") + xlab("")
+grid.arrange(g1,g2,g3,g4,ncol=2)
 dev.off()
-summary(glm(summaryMatrix$TRA_expression~clin)) #(STA vs AMR p=0.002)
-summary(glm(summaryMatrix$TRB_expression~clin)) #(STA vs AMR p=0.03)
-summary(glm(summaryMatrix$TRD_expression~clin)) #(STA vs CMR p=0.00008 STA vs AMR p=0.0002)
-summary(glm(summaryMatrix$TRG_expression~clin)) #(STA vs CMR p=0.06 STA vs AMR p=0.01)
 
-tiff("Boxplot_alphabeta.tiff",res=300,w=2000,h=2000)
-boxplot(summaryMatrix$Alpha_Beta~clin,col=COLOR,main="TRA+TRB/TRD+TRG ratio")
-dev.off()
-summary(glm(summaryMatrix$Alpha_Beta~clin)) #p(STA vs CMR)=0.01 p(STA vs AMR)=0.0001
+summary(glm(summaryMatrix$TRA_expression~relevel(clin,ref="AMR"))) #(STA vs AMR p=0.003, CMR vs AMR p=0.004)
+summary(glm(summaryMatrix$TRB_expression~clin)) #(STA vs AMR p=0.04)
+summary(glm(summaryMatrix$TRD_expression~clin)) #(STA vs CMR p=0.002 STA vs AMR p=0.0007)
+summary(glm(summaryMatrix$TRG_expression~clin)) #(STA vs CMR p=0.1 STA vs AMR p=0.04)
 
-plot_ratio<-cbind(data.frame(summaryMatrix$Alpha_Beta),clin)
-colnames(plot_ratio)<-c("ratio","transplant_outcomes")
-# Percent TRA & TRB of total T-reads
-tiff(filename = "AlphaBeta.tiff", width = 5, height = 4, units = 'in', res = 300, compression = 'lzw')
-ggplot(plot_ratio, aes(transplant_outcomes, ratio, fill = transplant_outcomes)) + 
+tiff("Results/MIXCR/Boxplot_alphabeta.tiff",res=300,w=2000,h=2000)
+ggplot(summaryMatrix, aes(clin, Alpha_Beta_ratio_expression, fill = clin)) + 
   geom_boxplot() + scale_fill_manual(values = COLOR) +
   ylab(expression(paste(alpha,beta,"/",gamma,delta,"_ratio"))) + xlab("") + ylim(.85, 1)
 dev.off()
+summary(glm(summaryMatrix$Alpha_Beta~clin)) #p(STA vs CMR)=0.01 p(STA vs AMR)=0.0001
+
 
 
 ##### Clinical Data Analysis #######
@@ -73,37 +116,118 @@ id_clin<-match(rownames(summaryMatrix),clin_data$Individual_id)
 clin_data<-clin_data[id_clin,]
 clin_data$clin<-clin
 
-summary(glm(summaryMatrix$TRG_expression~clin_data$DSA_HLA.class..0.neg..1.class.I..2.class.II..3.class.I.and.II.)) #
-boxplot(summaryMatrix$Alpha_Beta~clin_data$DSA_HLA.class..0.neg..1.class.I..2.class.II..3.class.I.and.II.,col=COLOR)
+#donor age
+mean(clin_data$donor.age[which(clin_data$clin=="STA")])
+mean(clin_data$donor.age[which(clin_data$clin=="CMR")])
+mean(clin_data$donor.age[which(clin_data$clin=="AMR")])
+sd(clin_data$donor.age[which(clin_data$clin=="STA")])
+sd(clin_data$donor.age[which(clin_data$clin=="CMR")])
+sd(clin_data$donor.age[which(clin_data$clin=="AMR")])
+summary(lm(clin_data$donor.age~clin_data$clin))
+
+#recipient age
+mean(clin_data$Rec.age[which(clin_data$clin=="STA")])
+mean(clin_data$Rec.age[which(clin_data$clin=="CMR")])
+mean(clin_data$Rec.age[which(clin_data$clin=="AMR")])
+sd(clin_data$Rec.age[which(clin_data$clin=="STA")])
+sd(clin_data$Rec.age[which(clin_data$clin=="CMR")])
+sd(clin_data$Rec.age[which(clin_data$clin=="AMR")])
+summary(lm(clin_data$Rec.age~clin_data$clin))
+
+#recipient gender
+table(clin_data$Rec.Gender,clin_data$clin)
+chisq.test(table(clin_data$Rec.Gender,clin_data$clin))
+
+#donor gender
+table(clin_data$Donor..gender,clin_data$clin)
+chisq.test(table(clin_data$Donor..gender,clin_data$clin))
+
+#Number of TX
+mean(clin_data$number.TX[which(clin_data$clin=="STA")])
+mean(clin_data$number.TX[which(clin_data$clin=="CMR")])
+mean(clin_data$number.TX[which(clin_data$clin=="AMR")])
+sd(clin_data$number.TX[which(clin_data$clin=="STA")])
+sd(clin_data$number.TX[which(clin_data$clin=="CMR")])
+sd(clin_data$number.TX[which(clin_data$clin=="AMR")])
+summary(lm(clin_data$number.TX~clin_data$clin))
+
+chisq.test(table(clin_data$Induction..Bxb..1..or.rATg..2..none..0..,clin_data$clin))
+
+chisq.test(table(clin_data$CNI.time.rejection..FK.1.CsA.2.none.0.,clin_data$clin))
+
+chisq.test(table(clin_data$DSA_HLA.class..0.neg..1.class.I..2.class.II..3.class.I.and.II.,clin_data$clin))
+
+chisq.test(table(clin_data$Anti.HLA.Ab_HLA.class,clin_data$clin))
+
+#eGFR
+mean(clin_data$eGFR..time.Bx.[which(clin_data$clin=="STA")])
+mean(clin_data$eGFR..time.Bx.[which(clin_data$clin=="CMR")])
+mean(clin_data$eGFR..time.Bx.[which(clin_data$clin=="AMR")])
+sd(clin_data$eGFR..time.Bx.[which(clin_data$clin=="STA")])
+sd(clin_data$eGFR..time.Bx.[which(clin_data$clin=="CMR")])
+sd(clin_data$eGFR..time.Bx.[which(clin_data$clin=="AMR")])
+summary(lm(clin_data$eGFR..time.Bx.~clin_data$clin))
+
+#GraftLoss
+chisq.test(table(clin_data$GraftLossCateg,clin_data$clin))
+
+
+summary(glm(summaryMatrix$Alpha_Beta_ratio_expression~clin_data$GraftLossCateg)) #
+boxplot(summaryMatrix$Alpha_Beta~clin_data$donor.age,col=COLOR)
 
 
 
 #####################
 #### GTEX data ######
 ####################
-load("Data/SummaryMatrixReadsFromMIXCR_GTEX.Rdata")
+load("Data/RepertoireResults_GTEx.Rdata")
+COLOR=brewer.pal(8,"Set2")
 
-ratio<-c(summaryMatrix$Alpha_Beta_ratio_expression,summaryMatrix_Everything$AlphaBeta_Percentage)
-clin2<-factor(c(as.character(clin),rep("GTEx",length(summaryMatrix_Everything$AlphaBeta_Percentage))))
-summary(glm(ratio~relevel(clin2,ref="GTEx"))) #
+####Ratio
+ratio<-c(summaryMatrix$Alpha_Beta_ratio_expression,summaryMatrix_GTEX$AlphaBeta_Percentage)
+clin2<-factor(c(as.character(clin),rep("GTEx",length(summaryMatrix_GTEX$AlphaBeta_Percentage))))
+clin2<-factor(clin2,levels=c("STA","CMR","AMR","GTEx"))
+summary(glm(ratio~relevel(clin2,ref="GTEx"))) # p = 4.07e-07 ***
+tiff("Results/MIXCR/Boxplot_alphabeta_GTEx.tiff",res=300,w=2000,h=2000)
 boxplot(ratio~clin2,col=COLOR)
-
+dev.off()
 
 gtex_id<-read.csv("Data/GTEX/SraRunTable_blood_1691.csv")
-individual_id<-gtex_id[match(rownames(summaryMatrix_Everything),gtex_id$Run_s),"submitted_subject_id_s"]
+individual_id<-gtex_id[match(rownames(summaryMatrix_GTEX),gtex_id$Run_s),"submitted_subject_id_s"]
 gtex_phenotype_data<-read.csv("Data/GTEX/phs000424.v7.pht002742.v7.p2.c1.GTEx_Subject_Phenotypes.GRU.csv")
 
 ###clasify diseases by renal, others and unknown
-gtex_phenotype_data$causeOfDeath<-ifelse(gtex_phenotype_data$DTHCOD=="acute renal failure" | 
-gtex_phenotype_data$DTHCOD=="acute renal failure secondary to polycystic kidney disease" | gtex_phenotype_data$DTHCOD=="end-stage renal disease"
-| gtex_phenotype_data$DTHCOD=="ESRD" | gtex_phenotype_data$DTHCOD=="esrd (end stage renal disease)" | gtex_phenotype_data$DTHCOD=="failure, renal" 
-| gtex_phenotype_data$DTHCOD=="Kidney diseases" | gtex_phenotype_data$DTHCOD=="kidney failure" | gtex_phenotype_data$DTHCOD=="renal failure" | gtex_phenotype_data$DTHCOD=="Renal failure","kidney-related",
-ifelse(gtex_phenotype_data$DTHCOD=="death - cause unknown" | gtex_phenotype_data$DTHCOD=="unknown" | gtex_phenotype_data$DTHCOD=="unknown cause of death" 
-       | gtex_phenotype_data$DTHCOD=="unknown, do not have a copy of the death certificate or an ME report" 
-       | gtex_phenotype_data$DTHCOD=="Unknown, do not have a copy of the death certificate or an ME report", "Unknown","Other-causes"))
-
-COD<-gtex_phenotype_data[match(individual_id,gtex_phenotype_data$SUBJID),"causeOfDeath"]
+COD<-gtex_phenotype_data[match(individual_id,gtex_phenotype_data$SUBJID),"CauseOfDeath"]
 clin3<-factor(c(as.character(clin),as.character(COD)))
+clin3<-factor(clin3,levels=c("STA","CMR","AMR","Renal","Liver","Respiratory","Cerebrovascular","Cardio","Trauma","Neuro","Unknown/Other"))
+summary(glm(ratio~relevel(clin3,ref="AMR"))) #
+tiff("Results/MIXCR/Boxplot_alphabeta_GTExbyCOD.tiff",res=300,w=3000,h=2500)
+boxplot(ratio~clin3,col=COLOR,las=2,cex.axis=0.6)
+dev.off()
 
-summary(glm(ratio~relevel(clin3,ref="STA"))) #
-boxplot(ratio~clin3,col=COLOR)
+###Renal vs Other
+COD2<-ifelse(COD=="Renal","Renal","Other")
+clin4<-factor(c(as.character(clin),as.character(COD2)))
+clin4<-factor(clin4,levels=c("STA","CMR","AMR","Renal","Other"))
+summary(glm(ratio~relevel(clin4,ref="STA"))) #
+tiff("Results/MIXCR/Boxplot_alphabeta_GTEx_RenalvsOther.tiff",res=300,w=3000,h=2500)
+boxplot(ratio~clin4,col=COLOR,las=2,cex.axis=0.6)
+dev.off()
+
+
+####TR's expression
+tiff("Results/MIXCR/Boxplot_TRs_expression_GTEx.tiff",res=300,w=3000,h=3000)
+par(mfrow=c(2,2))
+TRA<-c(summaryMatrix$TRA_expression,summaryMatrix_GTEX$TRA_expression)
+boxplot(TRA~clin4,col=COLOR,main=c("TRA expression"))
+summary(glm(TRA~relevel(clin4,ref="AMR")))
+TRB<-c(summaryMatrix$TRB_expression,summaryMatrix_GTEX$TRB_expression)
+boxplot(TRB~clin4,col=COLOR,main=c("TRB expression"))
+summary(glm(TRB~relevel(clin4,ref="AMR")))
+TRD<-c(summaryMatrix$TRD_expression,summaryMatrix_GTEX$TRD_expression)
+boxplot(TRD~clin4,col=COLOR,main=c("TRD expression"))
+summary(glm(TRD~relevel(clin4,ref="AMR")))
+TRG<-c(summaryMatrix$TRG_expression,summaryMatrix_GTEX$TRG_expression)
+boxplot(TRG~clin4,col=COLOR,main=c("TRG expression"))
+summary(glm(TRG~relevel(clin4,ref="AMR")))
+dev.off()
