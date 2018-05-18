@@ -70,7 +70,7 @@ for (i in sampleNames)
   IGL_Reads <- append(IGL_Reads, sampleGenes[["IGL"]])
   TRA_Reads <- append(TRA_Reads, sampleGenes[["TRA"]])
   TRB_Reads <- append(TRB_Reads, sampleGenes[["TRB"]])
-  if(length(grep("TRD",sampleGenes))==0){
+  if(length(grep("TRD",names(sampleGenes)))==0){
     TRD_Reads <- append(TRD_Reads,0)
   } else {
     TRD_Reads <- append(TRD_Reads, sampleGenes[["TRD"]])
@@ -115,27 +115,36 @@ row.names(summaryMatrix_Everything) <- samples
 save(summaryMatrix_Everything, file = "Data/SummaryMatrixReadsFromMIXCR_GTEX.Rdata")
 
 #### The data needs to be normalized by the unmapped reads 
-load("Data/summaryMatrix.Rdata") ##Summary data from the MIXCR tool
-load("Data/summaryCapture.Rdata") ##Summary data from the capture data in the QC process
+gtex_gene_counts<-read.table("Data/GTEX/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_reads.gct",header=T,sep="\t")
+ids<-read.csv("Data/GTEX/SraRunTable_blood_1691_Transcriptomic.csv")
 
-##Put in same order both datasets
-capture<-capture.df[order(rownames(capture.df)),]
+##Add the id in common to the summaryMatrix
+id_rs<-match(rownames(summaryMatrix_Everything),ids$Run_s)
+summaryMatrix_Everything_ids<-cbind(ids[id_rs,"Sample_Name_s"],summaryMatrix_Everything)
+colnames(summaryMatrix_Everything_ids)[1]<-"Sample_Name_s"
+
+##Find the samples we have in getex_gene_counts
+id<-match(summaryMatrix_Everything_ids$Sample_Name_s,colnames(gtex_gene_counts))
+
+summaryMatrix<-summaryMatrix_Everything_ids[which(is.na(id)==F),]
+gtex_gene_counts_qc<-gtex_gene_counts[,na.omit(id)]
+MappedReads<-colSums(gtex_gene_counts_qc)
 
 ##Total IG reads
 summaryMatrix$IG_Reads<-summaryMatrix$IGH_Reads+summaryMatrix$IGK_Reads+summaryMatrix$IGL_Reads
 summaryMatrix$T_Reads<-summaryMatrix$TRA_Reads+summaryMatrix$TRB_Reads+summaryMatrix$TRD_Reads+summaryMatrix$TRG_Reads
   
 ###Analysis in Overall Ab expression
-summaryMatrix$IG_expression<-summaryMatrix$IG_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$IGH_expression<-summaryMatrix$IGH_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$IGK_expression<-summaryMatrix$IGK_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$IGL_expression<-summaryMatrix$IGL_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$IG_expression<-summaryMatrix$IG_Reads/MappedReads
+summaryMatrix$IGH_expression<-summaryMatrix$IGH_Reads/MappedReads
+summaryMatrix$IGK_expression<-summaryMatrix$IGK_Reads/MappedReads
+summaryMatrix$IGL_expression<-summaryMatrix$IGL_Reads/MappedReads
 
-summaryMatrix$T_expression<-summaryMatrix$T_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$TRA_expression<-summaryMatrix$TRA_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$TRB_expression<-summaryMatrix$TRB_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$TRD_expression<-summaryMatrix$TRD_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$TRG_expression<-summaryMatrix$TRG_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$T_expression<-summaryMatrix$T_Reads/MappedReads
+summaryMatrix$TRA_expression<-summaryMatrix$TRA_Reads/MappedReads
+summaryMatrix$TRB_expression<-summaryMatrix$TRB_Reads/MappedReads
+summaryMatrix$TRD_expression<-summaryMatrix$TRD_Reads/MappedReads
+summaryMatrix$TRG_expression<-summaryMatrix$TRG_Reads/MappedReads
 
 ###Ratio
 summaryMatrix$Alpha_Beta_ratio_expression<-(summaryMatrix$TRA_expression+summaryMatrix$TRB_expression)/summaryMatrix$T_expression
@@ -146,24 +155,20 @@ summaryMatrix$KappaLambda_ratio_expression <- (summaryMatrix$IGK_expression / su
 ## Calculate the gene expression per each indiviudal gene ##
 ############################################################
 Vgene_counts<-data.matrix(table(alignmentData$bestVGene,alignmentData$Sample))
-Vgene_counts<-Vgene_counts[,which(colnames(Vgene_counts)!="M2" & colnames(Vgene_counts)!="M3" & colnames(Vgene_counts)!="M4" )]
-Vgene_counts<-Vgene_counts[-1,]
 Vgene_length<-read.csv("Data/VgeneLength.csv")
 id_gene<-match(rownames(Vgene_counts),Vgene_length$Gene.name)
 #Vgene_length[id_gene,"length"]
 
 Vgene_expression<-matrix(NA,nrow(Vgene_counts),ncol(Vgene_counts))
 for(i in 1:dim(Vgene_counts)[1]){
-  norm<-as.numeric(capture$uniquelyMappedReads)*Vgene_length[id_gene[i],"length"]
+  norm<-MappedReads*Vgene_length[id_gene[i],"length"]
   Vgene_expression[i,]<-1000*(Vgene_counts[i,]/norm)
 }
 rownames(Vgene_expression)<-rownames(Vgene_counts)
 colnames(Vgene_expression)<-colnames(Vgene_counts)
 
-clin<-factor(substr(rownames(capture),1,1))
-clin<-revalue(clin, c("C"="CMR", "H"="AMR" , "N" = "STA"))
-clin<-relevel(clin,ref="STA")
-
-save(summaryMatrix,clin, Vgene_expression,file="Data/RepertoireResults.Rdata")
+summaryMatrix_GTEX<-summaryMatrix
+Vgene_expression_GTEX<-Vgene_expression
+save(summaryMatrix_GTEX, Vgene_expression_GTEX,file="Data/RepertoireResults_GTEx.Rdata")
 
 
