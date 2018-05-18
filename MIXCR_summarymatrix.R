@@ -120,24 +120,38 @@ save(summaryMatrix, summaryMatrix_Everything, file = "Data/SummaryMatrixReadsFro
 load("Data/summaryMatrix.Rdata") ##Summary data from the MIXCR tool
 load("Data/summaryCapture.Rdata") ##Summary data from the capture data in the QC process
 
+
+
 ##Put in same order both datasets
 capture<-capture.df[order(rownames(capture.df)),]
+
+tiff("Results/MIXCR/Plot_MIXCRReads_UnmmapedReads.tiff",res=300,w=2000,h=2000)
+plot(summaryMatrix$Total_Reads,capture$numUnmappedReads,col=COLOR,pch=19)
+cor(summaryMatrix$Total_Reads,capture$numUnmappedReads) #0.8
+legend("topleft", legend=levels(clin),col=COLOR,pch=19, cex=1)
+dev.off()
+
+tiff("Results/MIXCR/Plot_MIXCRReads_MappedReads.tiff",res=300,w=2000,h=2000)
+plot(summaryMatrix$Total_Reads,capture$numReads,col=COLOR,pch=19)
+cor(summaryMatrix$Total_Reads, as.numeric(capture$numReads)) #0.8
+legend("topleft", legend=levels(clin),col=COLOR,pch=19, cex=1)
+dev.off()
 
 ##Total IG reads
 summaryMatrix$IG_Reads<-summaryMatrix$IGH_Reads+summaryMatrix$IGK_Reads+summaryMatrix$IGL_Reads
 summaryMatrix$T_Reads<-summaryMatrix$TRA_Reads+summaryMatrix$TRB_Reads+summaryMatrix$TRD_Reads+summaryMatrix$TRG_Reads
   
 ###Analysis in Overall Ab expression
-summaryMatrix$IG_expression<-summaryMatrix$IG_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$IGH_expression<-summaryMatrix$IGH_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$IGK_expression<-summaryMatrix$IGK_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$IGL_expression<-summaryMatrix$IGL_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$IG_expression<-summaryMatrix$IG_Reads/as.numeric(capture$numReads)
+summaryMatrix$IGH_expression<-summaryMatrix$IGH_Reads/as.numeric(capture$numReads)
+summaryMatrix$IGK_expression<-summaryMatrix$IGK_Reads/as.numeric(capture$numReads)
+summaryMatrix$IGL_expression<-summaryMatrix$IGL_Reads/as.numeric(capture$numReads)
 
-summaryMatrix$T_expression<-summaryMatrix$T_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$TRA_expression<-summaryMatrix$TRA_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$TRB_expression<-summaryMatrix$TRB_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$TRD_expression<-summaryMatrix$TRD_Reads/as.numeric(capture$uniquelyMappedReads)
-summaryMatrix$TRG_expression<-summaryMatrix$TRG_Reads/as.numeric(capture$uniquelyMappedReads)
+summaryMatrix$T_expression<-summaryMatrix$T_Reads/as.numeric(capture$numReads)
+summaryMatrix$TRA_expression<-summaryMatrix$TRA_Reads/as.numeric(capture$numReads)
+summaryMatrix$TRB_expression<-summaryMatrix$TRB_Reads/as.numeric(capture$numReads)
+summaryMatrix$TRD_expression<-summaryMatrix$TRD_Reads/as.numeric(capture$numReads)
+summaryMatrix$TRG_expression<-summaryMatrix$TRG_Reads/as.numeric(capture$numReads)
 
 ###Ratio
 summaryMatrix$Alpha_Beta_ratio_expression<-(summaryMatrix$TRA_expression+summaryMatrix$TRB_expression)/summaryMatrix$T_expression
@@ -156,7 +170,7 @@ id_gene<-match(rownames(Vgene_counts),Vgene_length$Gene.name)
 
 Vgene_expression<-matrix(NA,nrow(Vgene_counts),ncol(Vgene_counts))
 for(i in 1:dim(Vgene_counts)[1]){
-  norm<-as.numeric(capture$uniquelyMappedReads)*Vgene_length[id_gene[i],"length"]
+  norm<-as.numeric(capture$numReads)*Vgene_length[id_gene[i],"length"]
   Vgene_expression[i,]<-1000*(Vgene_counts[i,]/norm)
 }
 rownames(Vgene_expression)<-rownames(Vgene_counts)
