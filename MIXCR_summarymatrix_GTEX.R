@@ -115,20 +115,16 @@ row.names(summaryMatrix_Everything) <- samples
 save(summaryMatrix_Everything, file = "Data/SummaryMatrixReadsFromMIXCR_GTEX.Rdata")
 
 #### The data needs to be normalized by the unmapped reads 
-gtex_gene_counts<-read.table("Data/GTEX/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_reads.gct",header=T,sep="\t")
+load("Data/SummaryMatrixReadsFromMIXCR_GTEX.Rdata")
+gtex_totalReads<-read.table("Data/GTEX/total_reads_GTEX.txt",sep=";")
 ids<-read.csv("Data/GTEX/SraRunTable_blood_1691_Transcriptomic.csv")
 
-##Add the id in common to the summaryMatrix
-id_rs<-match(rownames(summaryMatrix_Everything),ids$Run_s)
-summaryMatrix_Everything_ids<-cbind(ids[id_rs,"Sample_Name_s"],summaryMatrix_Everything)
-colnames(summaryMatrix_Everything_ids)[1]<-"Sample_Name_s"
-
 ##Find the samples we have in getex_gene_counts
-id<-match(summaryMatrix_Everything_ids$Sample_Name_s,colnames(gtex_gene_counts))
+id<-match(rownames(summaryMatrix_Everything),as.character(gtex_totalReads$V1))
 
 summaryMatrix<-summaryMatrix_Everything_ids[which(is.na(id)==F),]
-gtex_gene_counts_qc<-gtex_gene_counts[,na.omit(id)]
-MappedReads<-colSums(gtex_gene_counts_qc)
+gtex_totalReads_qc<-gtex_totalReads[na.omit(id),]
+MappedReads<-gtex_totalReads_qc$V2
 
 ##Total IG reads
 summaryMatrix$IG_Reads<-summaryMatrix$IGH_Reads+summaryMatrix$IGK_Reads+summaryMatrix$IGL_Reads
