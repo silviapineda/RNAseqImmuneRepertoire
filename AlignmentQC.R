@@ -228,3 +228,5 @@ pca<-prcomp(norm_data_rlog)
 tiff("PCAplot_rlog.tiff",res=300,w=2000,h=2000)
 plot(pca$rotation[,1],pca$rotation[,2],col=COLOR[SPP],pch=20,cex=1.5,xlab="PC1",ylab="PC2")
 dev.off()
+
+
