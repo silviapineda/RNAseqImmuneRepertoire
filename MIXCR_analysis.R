@@ -187,9 +187,12 @@ COLOR=brewer.pal(8,"Set2")
 ratio<-c(summaryMatrix$Alpha_Beta_ratio_expression,summaryMatrix_GTEX$AlphaBeta_Percentage)
 clin2<-factor(c(as.character(clin),rep("GTEx",length(summaryMatrix_GTEX$AlphaBeta_Percentage))))
 clin2<-factor(clin2,levels=c("STA","CMR","AMR","GTEx"))
-summary(glm(ratio~relevel(clin2,ref="GTEx"))) # p = 4.07e-07 ***
+summary(glm(ratio~relevel(clin2,ref="AMR"))) 
+ratio_TX_GTEX<-cbind(data.frame(ratio),clin2)
 tiff("Results/MIXCR/Boxplot_alphabeta_GTEx.tiff",res=300,w=2000,h=2000)
-boxplot(ratio~clin2,col=COLOR)
+ggplot(ratio_TX_GTEX, aes(clin2, ratio, fill = clin2)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab(expression(paste(alpha,beta,"/",gamma,delta,"_ratio"))) + xlab("")
 dev.off()
 
 gtex_id<-read.csv("Data/GTEX/SraRunTable_blood_1691.csv")
@@ -201,33 +204,50 @@ COD<-gtex_phenotype_data[match(individual_id,gtex_phenotype_data$SUBJID),"CauseO
 clin3<-factor(c(as.character(clin),as.character(COD)))
 clin3<-factor(clin3,levels=c("STA","CMR","AMR","Renal","Liver","Respiratory","Cerebrovascular","Cardio","Trauma","Neuro","Unknown/Other"))
 summary(glm(ratio~relevel(clin3,ref="AMR"))) #
-tiff("Results/MIXCR/Boxplot_alphabeta_GTExbyCOD.tiff",res=300,w=3000,h=2500)
-boxplot(ratio~clin3,col=COLOR,las=2,cex.axis=0.6)
-dev.off()
 
 ###Renal vs Other
-COD2<-ifelse(COD=="Renal","Renal","Other")
+COD2<-ifelse(COD=="Renal","GTEx-Renal","GTEx-Other")
 clin4<-factor(c(as.character(clin),as.character(COD2)))
-clin4<-factor(clin4,levels=c("STA","CMR","AMR","Renal","Other"))
-summary(glm(ratio~relevel(clin4,ref="STA"))) #
-tiff("Results/MIXCR/Boxplot_alphabeta_GTEx_RenalvsOther.tiff",res=300,w=3000,h=2500)
-boxplot(ratio~clin4,col=COLOR,las=2,cex.axis=0.6)
+clin4<-factor(clin4,levels=c("STA","CMR","AMR","GTEx-Renal","GTEx-Other"))
+summary(glm(ratio~relevel(clin4,ref="AMR"))) #
+ratio_TX_GTEX<-cbind(data.frame(ratio),clin4)
+tiff("Results/MIXCR/Boxplot_alphabeta_GTEx_renal_other.tiff",res=300,w=2000,h=2000)
+ggplot(ratio_TX_GTEX, aes(clin4, ratio, fill = clin4)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab(expression(paste(alpha,beta,"/",gamma,delta,"_ratio"))) + xlab("")
 dev.off()
 
 
 ####TR's expression
-tiff("Results/MIXCR/Boxplot_TRs_expression_GTEx.tiff",res=300,w=3000,h=3000)
-par(mfrow=c(2,2))
+tiff("Results/MIXCR/Boxplot_TRs_expression_GTEx.tiff",res=300,w=3500,h=2500)
+
 TRA<-c(summaryMatrix$TRA_expression,summaryMatrix_GTEX$TRA_expression)
-boxplot(TRA~clin4,col=COLOR,main=c("TRA expression"))
+TRA_TX_GTEX<-cbind(data.frame(TRA),clin4)
+g1<-ggplot(TRA_TX_GTEX, aes(clin4, TRA, fill = clin4)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRA expression") + xlab("")
 summary(glm(TRA~relevel(clin4,ref="AMR")))
+
 TRB<-c(summaryMatrix$TRB_expression,summaryMatrix_GTEX$TRB_expression)
-boxplot(TRB~clin4,col=COLOR,main=c("TRB expression"))
+TRB_TX_GTEX<-cbind(data.frame(TRB),clin4)
+g2<-ggplot(TRB_TX_GTEX, aes(clin4, TRB, fill = clin4)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRB expression") + xlab("")
 summary(glm(TRB~relevel(clin4,ref="AMR")))
+
 TRD<-c(summaryMatrix$TRD_expression,summaryMatrix_GTEX$TRD_expression)
-boxplot(TRD~clin4,col=COLOR,main=c("TRD expression"))
+TRD_TX_GTEX<-cbind(data.frame(TRD),clin4)
+g3<-ggplot(TRD_TX_GTEX, aes(clin4, TRD, fill = clin4)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRD expression") + xlab("")
 summary(glm(TRD~relevel(clin4,ref="AMR")))
+
 TRG<-c(summaryMatrix$TRG_expression,summaryMatrix_GTEX$TRG_expression)
-boxplot(TRG~clin4,col=COLOR,main=c("TRG expression"))
+TRG_TX_GTEX<-cbind(data.frame(TRG),clin4)
+g4<-ggplot(TRG_TX_GTEX, aes(clin4, TRG, fill = clin4)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRG expression") + xlab("")
 summary(glm(TRG~relevel(clin4,ref="AMR")))
+grid.arrange(g1,g2,g3,g4,ncol=2)
 dev.off()
+
