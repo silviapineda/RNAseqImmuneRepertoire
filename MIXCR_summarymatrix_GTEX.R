@@ -110,6 +110,10 @@ summaryMatrix_Everything$AlphaBeta_Percentage <- (summaryMatrix_Everything$TRA_R
 summaryMatrix_Everything$KappaLambda_Ratio <- (summaryMatrix_Everything$IGK_Reads / summaryMatrix_Everything$IGL_Reads)
 
 row.names(summaryMatrix_Everything) <- samples
+#names_short<-rownames(summaryMatrix_Everything)[280:nrow(summaryMatrix_Everything)]
+#splitpop2<-strsplit(names_short,"}")
+#names_short<-unlist(lapply(splitpop2, "[", 1))
+#rownames(summaryMatrix_Everything)[280:nrow(summaryMatrix_Everything)]<-names_short
 
 #Save the data
 save(summaryMatrix_Everything, file = "Data/SummaryMatrixReadsFromMIXCR_GTEX.Rdata")
@@ -122,7 +126,7 @@ ids<-read.csv("Data/GTEX/SraRunTable_blood_1691_Transcriptomic.csv")
 ##Find the samples we have in getex_gene_counts
 id<-match(rownames(summaryMatrix_Everything),as.character(gtex_totalReads$V1))
 
-summaryMatrix<-summaryMatrix_Everything_ids[which(is.na(id)==F),]
+summaryMatrix<-summaryMatrix_Everything[which(is.na(id)==F),]
 gtex_totalReads_qc<-gtex_totalReads[na.omit(id),]
 MappedReads<-gtex_totalReads_qc$V2
 

@@ -196,6 +196,10 @@ ggplot(ratio_TX_GTEX, aes(clin2, ratio, fill = clin2)) +
 dev.off()
 
 gtex_id<-read.csv("Data/GTEX/SraRunTable_blood_1691.csv")
+names_short<-rownames(summaryMatrix_GTEX)[280:nrow(summaryMatrix_GTEX)]
+splitpop2<-strsplit(names_short,"}")
+names_short<-unlist(lapply(splitpop2, "[", 1))
+rownames(summaryMatrix_GTEX)[280:nrow(summaryMatrix_GTEX)]<-names_short
 individual_id<-gtex_id[match(rownames(summaryMatrix_GTEX),gtex_id$Run_s),"submitted_subject_id_s"]
 gtex_phenotype_data<-read.csv("Data/GTEX/phs000424.v7.pht002742.v7.p2.c1.GTEx_Subject_Phenotypes.GRU.csv")
 
@@ -223,31 +227,45 @@ tiff("Results/MIXCR/Boxplot_TRs_expression_GTEx.tiff",res=300,w=3500,h=2500)
 
 TRA<-c(summaryMatrix$TRA_expression,summaryMatrix_GTEX$TRA_expression)
 TRA_TX_GTEX<-cbind(data.frame(TRA),clin4)
-g1<-ggplot(TRA_TX_GTEX, aes(clin4, TRA, fill = clin4)) + 
+g1<-ggplot(TRA_TX_GTEX, aes(clin2, TRA, fill = clin2)) + 
   geom_boxplot() + scale_fill_manual(values = COLOR) +
   ylab("TRA expression") + xlab("")
-summary(glm(TRA~relevel(clin4,ref="AMR")))
+summary(glm(TRA~relevel(clin2,ref="GTEx")))
 
 TRB<-c(summaryMatrix$TRB_expression,summaryMatrix_GTEX$TRB_expression)
-TRB_TX_GTEX<-cbind(data.frame(TRB),clin4)
-g2<-ggplot(TRB_TX_GTEX, aes(clin4, TRB, fill = clin4)) + 
+TRB_TX_GTEX<-cbind(data.frame(TRB),clin2)
+g2<-ggplot(TRB_TX_GTEX, aes(clin2, TRB, fill = clin2)) + 
   geom_boxplot() + scale_fill_manual(values = COLOR) +
   ylab("TRB expression") + xlab("")
-summary(glm(TRB~relevel(clin4,ref="AMR")))
-
-TRD<-c(summaryMatrix$TRD_expression,summaryMatrix_GTEX$TRD_expression)
-TRD_TX_GTEX<-cbind(data.frame(TRD),clin4)
-g3<-ggplot(TRD_TX_GTEX, aes(clin4, TRD, fill = clin4)) + 
-  geom_boxplot() + scale_fill_manual(values = COLOR) +
-  ylab("TRD expression") + xlab("")
-summary(glm(TRD~relevel(clin4,ref="AMR")))
+summary(glm(TRB~relevel(clin2,ref="GTEx")))
 
 TRG<-c(summaryMatrix$TRG_expression,summaryMatrix_GTEX$TRG_expression)
-TRG_TX_GTEX<-cbind(data.frame(TRG),clin4)
-g4<-ggplot(TRG_TX_GTEX, aes(clin4, TRG, fill = clin4)) + 
+TRG_TX_GTEX<-cbind(data.frame(TRG),clin2)
+g3<-ggplot(TRG_TX_GTEX, aes(clin2, TRG, fill = clin2)) + 
   geom_boxplot() + scale_fill_manual(values = COLOR) +
   ylab("TRG expression") + xlab("")
-summary(glm(TRG~relevel(clin4,ref="AMR")))
+summary(glm(TRG~relevel(clin2,ref="GTEx")))
+
+TRD<-c(summaryMatrix$TRD_expression,summaryMatrix_GTEX$TRD_expression)
+TRD_TX_GTEX<-cbind(data.frame(TRD),clin2)
+g4<-ggplot(TRD_TX_GTEX, aes(clin2, TRD, fill = clin2)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRD expression") + xlab("")
+summary(glm(TRD~relevel(clin2,ref="GTEx")))
+
 grid.arrange(g1,g2,g3,g4,ncol=2)
 dev.off()
 
+###Summary of the IG's
+mean(summaryMatrix_GTEX$IGH_Reads)
+mean(summaryMatrix_GTEX$IGK_Reads)
+mean(summaryMatrix_GTEX$IGL_Reads)
+
+
+###Summary of the TR's
+mean(summaryMatrix_GTEX$TRA_Reads)
+mean(summaryMatrix_GTEX$TRB_Reads)
+mean(summaryMatrix_GTEX$TRD_Reads)
+mean(summaryMatrix_GTEX$TRG_Reads)
+
+mean(summaryMatrix_GTEX)

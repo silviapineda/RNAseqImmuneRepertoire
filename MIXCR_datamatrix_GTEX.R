@@ -32,7 +32,9 @@ table(SraRunTable$Assay_Type_s) ##456 RNAseq
 ##Extract the RSS ID
 splitpop <- strsplit(alignmentFiles,"_")
 rs_id<-unlist(lapply(splitpop, "[", 1))
-rs_id<-substring(rs_id,2,11)
+splitpop2<-strsplit(rs_id,"}")
+rs_id2<-unlist(lapply(splitpop2, "[", 1))
+rs_id<-substring(rs_id2,2)
 
 ##Finr the RNA-seq ones
 data_mixcr<-SraRunTable[match(rs_id,SraRunTable$Run_s),]
