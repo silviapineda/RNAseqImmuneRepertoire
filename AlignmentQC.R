@@ -211,13 +211,13 @@ rownames(coldata)<-coldata[,1]
 coldata<-coldata[,-1]
 coldata<-coldata[order(rownames(coldata)),]
 dds <- DESeqDataSetFromMatrix(count_rsem_genes, coldata, ~ type)
+normalized_rlog <- rlog(dds, blind=F) 
+norm_data_rlog<-assay(normalized_rlog)
+save(norm_data_rlog,file="norm_data_rlog.Rdata")
 #filtering by low counts 
 ##keep genes that have counts per milion values above 0.5 in at least two libraries
 dds_filter <-  dds[rowSums(fpm(dds) > 0.5) >= 2] 
-##normalized with rlog
-normalized_rlog <- rlog(dds_filter, blind=F) 
-norm_data_rlog<-assay(normalized_rlog)
-save(norm_data_rlog,file="Data/norm_data_filter_rlog_filter.Rdata")
+
 
 load("Data/norm_data_rlog.Rdata")
 tiff("Boxplot_rlog.tiff",res=300,w=4000,h=2000)
@@ -228,5 +228,14 @@ pca<-prcomp(norm_data_rlog)
 tiff("PCAplot_rlog.tiff",res=300,w=2000,h=2000)
 plot(pca$rotation[,1],pca$rotation[,2],col=COLOR[SPP],pch=20,cex=1.5,xlab="PC1",ylab="PC2")
 dev.off()
+
+
+##############################
+##GTEX data with FPKM values##
+##############################
+gtex_fpkm<-read.table("gtex_RSEM_gene_fpkm",header=T)
+boxplot(gtex_fpkm[,sample(c(2:ncol(gtex_fpkm)),50)],cex.axis=0.6)
+
+
 
 
