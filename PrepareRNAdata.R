@@ -22,7 +22,7 @@ setwd(working_directory)
 
 load("Data/repertoireResults.Rdata")
 load("Data/rsemResults.Rdata")
-load("Data/norm_data_rlog_filter.Rdata")
+load("Data/norm_data_rlog.Rdata")
 
 annotation<-read.table("Data/gencode.v23.annotation.txt",sep=";") ##60,498
 annotation<-annotation[,-7]
@@ -30,3 +30,7 @@ colnames(annotation)<-c("Chr","Start","End","Ensemble_id","type_gene","name")
 
 names(clin)<-colnames(norm_data_rlog)
 save(count_rsem_genes,FPKM_rsem_genes,norm_data_rlog,annotation,clin,file="Data/RNAseqProcessedNormalized.Rdata")
+
+id<-match(rownames(norm_data_rlog),annotation$Ensemble_id)
+rownames(norm_data_rlog)<-annotation$name[id]
+write.table(norm_data_rlog,"Data/norm_data_rlog.txt",sep="\t")
