@@ -269,3 +269,123 @@ mean(summaryMatrix_GTEX$TRD_Reads)
 mean(summaryMatrix_GTEX$TRG_Reads)
 
 mean(summaryMatrix_GTEX)
+
+
+#######################
+#### VALIDATION DATA ##
+#######################
+load("Data/RepertoireResults_VAL.Rdata")
+patient_data$clin<-ifelse(patient_data$time_of_blood_draw=="pre-transplant","pre-tx",
+                          ifelse(patient_data$time_of_blood_draw=="1 week post-transplant","post-1week",
+                          ifelse(patient_data$time_of_blood_draw=="3 months post-transplant","post-3mo","post-6mo")))
+patient_data$clin<-factor(patient_data$clin)
+COLOR=brewer.pal(8,"Set2")
+clin_Trans<-c(as.character(clin),as.character(patient_data$clin))
+clin_Trans<-factor(clin_Trans,levels=c("STA","CMR","AMR","pre-tx","post-1week","post-3mo","post-6mo"))
+
+####TR's expression
+tiff("Results/MIXCR/Boxplot_TRs_expression_VAL.tiff",res=300,w=3500,h=2500)
+COLOR<-COLOR[c(1:3,5:8)]
+
+TRA<-c(summaryMatrix$TRA_expression,summaryMatrix_VAL$TRA_expression)
+TRA_TX_VAL<-cbind(data.frame(TRA),clin_Trans)
+g1<-ggplot(TRA_TX_VAL, aes(clin_Trans, TRA, fill = clin_Trans)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRA expression") + xlab("")
+summary(glm(TRA~relevel(clin_Trans,ref="AMR")))
+
+TRB<-c(summaryMatrix$TRB_expression,summaryMatrix_VAL$TRB_expression)
+TRB_TX_VAL<-cbind(data.frame(TRB),clin_Trans)
+g2<-ggplot(TRB_TX_VAL, aes(clin_Trans, TRB, fill = clin_Trans)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRB expression") + xlab("")
+summary(glm(TRB~relevel(clin_Trans,ref="AMR")))
+
+TRG<-c(summaryMatrix$TRG_expression,summaryMatrix_VAL$TRG_expression)
+TRG_TX_VAL<-cbind(data.frame(TRG),clin_Trans)
+g3<-ggplot(TRG_TX_VAL, aes(clin_Trans, TRG, fill = clin_Trans)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRG expression") + xlab("")
+summary(glm(TRG~relevel(clin_Trans,ref="AMR")))
+
+TRD<-c(summaryMatrix$TRD_expression,summaryMatrix_VAL$TRD_expression)
+TRD_TX_VAL<-cbind(data.frame(TRD),clin_Trans)
+g4<-ggplot(TRD_TX_VAL, aes(clin_Trans, TRD, fill = clin_Trans)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("TRD expression") + xlab("")
+summary(glm(TRD~relevel(clin_Trans,ref="AMR")))
+
+grid.arrange(g1,g2,g3,g4,ncol=2)
+dev.off()
+
+####Summary of the TC's
+mean(summaryMatrix_VAL$TRA_Reads[which(patient_data$clin=="pre-tx")])
+mean(summaryMatrix_VAL$TRA_Reads[which(patient_data$clin=="post-1week")])
+mean(summaryMatrix_VAL$TRA_Reads[which(patient_data$clin=="post-3mo")])
+mean(summaryMatrix_VAL$TRA_Reads[which(patient_data$clin=="post-6mo")])
+
+mean(summaryMatrix_VAL$TRB_Reads[which(patient_data$clin=="pre-tx")])
+mean(summaryMatrix_VAL$TRB_Reads[which(patient_data$clin=="post-1week")])
+mean(summaryMatrix_VAL$TRB_Reads[which(patient_data$clin=="post-3mo")])
+mean(summaryMatrix_VAL$TRB_Reads[which(patient_data$clin=="post-6mo")])
+
+mean(summaryMatrix_VAL$TRG_Reads[which(patient_data$clin=="pre-tx")])
+mean(summaryMatrix_VAL$TRG_Reads[which(patient_data$clin=="post-1week")])
+mean(summaryMatrix_VAL$TRG_Reads[which(patient_data$clin=="post-3mo")])
+mean(summaryMatrix_VAL$TRG_Reads[which(patient_data$clin=="post-6mo")])
+
+mean(summaryMatrix_VAL$TRD_Reads[which(patient_data$clin=="pre-tx")])
+mean(summaryMatrix_VAL$TRD_Reads[which(patient_data$clin=="post-1week")])
+mean(summaryMatrix_VAL$TRD_Reads[which(patient_data$clin=="post-3mo")])
+mean(summaryMatrix_VAL$TRD_Reads[which(patient_data$clin=="post-6mo")])
+
+####ALpha beta-ratio
+tiff("Results/MIXCR/Boxplot_alphabeta_VAL.tiff",res=300,w=2000,h=2000)
+ggplot(summaryMatrix_VAL, aes(patient_data$clin, Alpha_Beta_ratio_expression, fill = patient_data$clin)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR[5:8]) +
+  ylab(expression(paste(alpha,beta,"/",gamma,delta,"_ratio"))) + xlab("") #+ ylim(.85, 1)
+dev.off()
+summary(glm(summaryMatrix_VAL$Alpha_Beta_ratio_expression~patient_data$clin)) #p(STA vs CMR)=0.01 p(STA vs AMR)=0.0001
+
+mean(summaryMatrix_VAL$Alpha_Beta_ratio_expression[which(patient_data$clin=="pre-tx")])
+mean(summaryMatrix_VAL$Alpha_Beta_ratio_expression[which(patient_data$clin=="post-1week")])
+mean(summaryMatrix_VAL$Alpha_Beta_ratio_expression[which(patient_data$clin=="post-3mo")])
+mean(summaryMatrix_VAL$Alpha_Beta_ratio_expression[which(patient_data$clin=="post-6mo")])
+
+sd(summaryMatrix_VAL$Alpha_Beta_ratio_expression[which(patient_data$clin=="pre-tx")])
+sd(summaryMatrix_VAL$Alpha_Beta_ratio_expression[which(patient_data$clin=="post-1week")])
+sd(summaryMatrix_VAL$Alpha_Beta_ratio_expression[which(patient_data$clin=="post-3mo")])
+sd(summaryMatrix_VAL$Alpha_Beta_ratio_expression[which(patient_data$clin=="post-6mo")])
+
+
+####Summary of the IG's
+mean(summaryMatrix_VAL$IGH_Reads[which(patient_data$clin=="pre-tx")])
+mean(summaryMatrix_VAL$IGH_Reads[which(patient_data$clin=="post-1week")])
+mean(summaryMatrix_VAL$IGH_Reads[which(patient_data$clin=="post-3mo")])
+mean(summaryMatrix_VAL$IGH_Reads[which(patient_data$clin=="post-6mo")])
+
+mean(summaryMatrix_VAL$IGK_Reads[which(patient_data$clin=="pre-tx")])
+mean(summaryMatrix_VAL$IGK_Reads[which(patient_data$clin=="post-1week")])
+mean(summaryMatrix_VAL$IGK_Reads[which(patient_data$clin=="post-3mo")])
+mean(summaryMatrix_VAL$IGK_Reads[which(patient_data$clin=="post-6mo")])
+
+mean(summaryMatrix_VAL$IGL_Reads[which(patient_data$clin=="pre-tx")])
+mean(summaryMatrix_VAL$IGL_Reads[which(patient_data$clin=="post-1week")])
+mean(summaryMatrix_VAL$IGL_Reads[which(patient_data$clin=="post-3mo")])
+mean(summaryMatrix_VAL$IGL_Reads[which(patient_data$clin=="post-6mo")])
+
+
+
+##############
+#### Ratio ###
+##############
+
+ratio<-c(summaryMatrix$Alpha_Beta_ratio_expression,summaryMatrix_VAL$Alpha_Beta_ratio_expression)
+ratio_TX_VAL<-cbind(data.frame(ratio),clin_Trans)
+tiff("Results/MIXCR/Boxplot_alphabeta_TX_VAL.tiff",res=300,w=2000,h=2000)
+ggplot(ratio_TX_VAL, aes(clin_Trans, ratio, fill = clin_Trans)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab(expression(paste(alpha,beta,"/",gamma,delta,"_ratio"))) + xlab("")
+dev.off()
+summary(glm(ratio_TX_VAL$ratio~relevel(clin_Trans,"AMR"))) #
+
