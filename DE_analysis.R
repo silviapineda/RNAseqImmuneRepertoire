@@ -49,6 +49,7 @@ dds_filter$type <- relevel(dds_filter$type, ref = "STA")
 ##normalized with rlog
 normalized_rlog <- rlog(dds_filter, blind=F) 
 norm_data_rlog<-assay(normalized_rlog)
+save(norm_data_rlog,clin,file="Data/norm_data_rlog_filter.Rdata")
 
 ###To find which ones are coding and which ones are non coding
 id_genes<-match(rownames(dds_filter),annotation$Ensemble_id)
@@ -134,18 +135,26 @@ set.seed(33)
 fit<-VSURF(x = t(norm_data_rlog), y=clin, parallel = TRUE,ncores=4)
 save(fit,file="Results/RNAseq/Genes_VSURF.Rdata")
 
-genes<-data.frame(norm_data_rlog_coding[fit$varselect.interp,])
+load("Results/RNAseq/Genes_VSURF.Rdata")
+load("Data/norm_data_rlog_filter.Rdata")
+genes<-data.frame(norm_data_rlog[fit$varselect.interp,]) ##33 genes
 
-set.seed(1000)
-rf_output <- randomForest(clin~.,data=t(genes),proximity=TRUE, keep.forest=T,ntree=1000)
+###Plot the results
+id_gene<-match(annotation$Ensemble_id,rownames(genes))
+significantResults<-genes[na.omit(id_gene),]
 
+xt<-t(significantResults)
+xts<-scale(xt)
+xtst<-t(xts)
+rownames <- colnames(significantResults)
+annotation.col <- data.frame(row.names = rownames)
+annotation.col$Type <- factor(clin)
+COLOR = brewer.pal(4,"Set2")
+ann_colors = list(Type = c("STA" = COLOR [1] ,"AMR" = COLOR[3], "CMR" = COLOR[2]))
 
-
-#### Coding genes 
-annotation_coding<-annotation[which(annotation$type_gene=="protein_coding"),]
-id_gene<-match(annotation_coding$Ensemble_id,rownames(norm_data_rlog))
-norm_data_rlog_coding<-norm_data_rlog[na.omit(id_gene),]
-
+tiff(filename = "Results/RNAseq/heatmap_RF.tiff", width = 3000, height = 2000, res = 300)
+pheatmap(xtst, annotation = annotation.col, annotation_colors = ann_colors,show_rownames=F)
+dev.off()
 
 
 
