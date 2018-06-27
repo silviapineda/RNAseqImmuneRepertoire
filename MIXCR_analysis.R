@@ -171,8 +171,10 @@ summary(lm(clin_data$eGFR..time.Bx.~clin_data$clin))
 #GraftLoss
 chisq.test(table(clin_data$GraftLossCateg,clin_data$clin))
 
+#Immunosuppression
+table(clin_data$Immunosuppression)
 
-summary(glm(summaryMatrix$Alpha_Beta_ratio_expression~clin_data$GraftLossCateg)) #
+summary(glm(summaryMatrix$Alpha_Beta_ratio_expression~clin_data$clin+clin_data$Immunosuppression)) #
 boxplot(summaryMatrix$Alpha_Beta~clin_data$donor.age,col=COLOR)
 
 
@@ -340,12 +342,15 @@ mean(summaryMatrix_VAL$TRD_Reads[which(patient_data$clin=="post-3mo")])
 mean(summaryMatrix_VAL$TRD_Reads[which(patient_data$clin=="post-6mo")])
 
 ####ALpha beta-ratio
+COLOR=brewer.pal(8,"Set2")
+patient_data$clin<-relevel(patient_data$clin,ref="pre-tx")
 tiff("Results/MIXCR/Boxplot_alphabeta_VAL.tiff",res=300,w=2000,h=2000)
 ggplot(summaryMatrix_VAL, aes(patient_data$clin, Alpha_Beta_ratio_expression, fill = patient_data$clin)) + 
   geom_boxplot() + scale_fill_manual(values = COLOR[5:8]) +
   ylab(expression(paste(alpha,beta,"/",gamma,delta,"_ratio"))) + xlab("") #+ ylim(.85, 1)
 dev.off()
-summary(glm(summaryMatrix_VAL$Alpha_Beta_ratio_expression~patient_data$clin)) #p(STA vs CMR)=0.01 p(STA vs AMR)=0.0001
+summary(glm(summaryMatrix_VAL$Alpha_Beta_ratio_expression~patient_data$clin)) 
+#p(pre vs 1week)=3.8*10-11 p(pre vs 3mo)=0.001 p(pre vs 6mo)=0.02
 
 mean(summaryMatrix_VAL$Alpha_Beta_ratio_expression[which(patient_data$clin=="pre-tx")])
 mean(summaryMatrix_VAL$Alpha_Beta_ratio_expression[which(patient_data$clin=="post-1week")])
@@ -374,18 +379,47 @@ mean(summaryMatrix_VAL$IGL_Reads[which(patient_data$clin=="post-1week")])
 mean(summaryMatrix_VAL$IGL_Reads[which(patient_data$clin=="post-3mo")])
 mean(summaryMatrix_VAL$IGL_Reads[which(patient_data$clin=="post-6mo")])
 
+tiff("Results/MIXCR/Boxplot_IGs_expression_VAL.tiff",res=300,w=3500,h=2500)
+IGH<-c(summaryMatrix$IGH_expression,summaryMatrix_VAL$IGH_expression)
+IGH_TX_VAL<-cbind(data.frame(IGH),clin_Trans)
+g1<-ggplot(IGH_TX_VAL, aes(clin_Trans, IGH, fill = clin_Trans)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("IGH expression") + xlab("")
+summary(glm(IGH~relevel(clin_Trans,ref="AMR")))
+
+IGL<-c(summaryMatrix$IGL_expression,summaryMatrix_VAL$IGL_expression)
+IGL_TX_VAL<-cbind(data.frame(IGL),clin_Trans)
+g2<-ggplot(IGL_TX_VAL, aes(clin_Trans, IGL, fill = clin_Trans)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("IGL expression") + xlab("")
+summary(glm(IGL~relevel(clin_Trans,ref="AMR")))
+
+IGK<-c(summaryMatrix$IGK_expression,summaryMatrix_VAL$IGK_expression)
+IGK_TX_VAL<-cbind(data.frame(IGK),clin_Trans)
+g3<-ggplot(IGK_TX_VAL, aes(clin_Trans, IGK, fill = clin_Trans)) + 
+  geom_boxplot() + scale_fill_manual(values = COLOR) +
+  ylab("IGK expression") + xlab("")
+summary(glm(IGK~relevel(clin_Trans,ref="AMR")))
+
+grid.arrange(g1,g2,g3,ncol=2)
+dev.off()
 
 
 ##############
 #### Ratio ###
 ##############
-
 ratio<-c(summaryMatrix$Alpha_Beta_ratio_expression,summaryMatrix_VAL$Alpha_Beta_ratio_expression)
 ratio_TX_VAL<-cbind(data.frame(ratio),clin_Trans)
+COLOR<-COLOR[c(1:3,5:8)]
 tiff("Results/MIXCR/Boxplot_alphabeta_TX_VAL.tiff",res=300,w=2000,h=2000)
 ggplot(ratio_TX_VAL, aes(clin_Trans, ratio, fill = clin_Trans)) + 
   geom_boxplot() + scale_fill_manual(values = COLOR) +
   ylab(expression(paste(alpha,beta,"/",gamma,delta,"_ratio"))) + xlab("")
 dev.off()
-summary(glm(ratio_TX_VAL$ratio~relevel(clin_Trans,"AMR"))) #
+summary(glm(ratio_TX_VAL$ratio~relevel(clin_Trans,"AMR"))) 
+#p(AMR vs pre)=0.08
+#p(AMR vs 1week)=05.13*10-14
+#p(AMR vs 3mo)=4.7*10-6
+#p(AMR vs 6mo)=0.0002
+
 
