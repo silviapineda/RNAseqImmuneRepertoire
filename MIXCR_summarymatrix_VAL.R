@@ -126,6 +126,6 @@ colnames(Vgene_expression)<-colnames(Vgene_counts)
 ##Save the data
 summaryMatrix_VAL<-summaryMatrix
 Vgene_expression_VAL<-Vgene_expression
-save(summaryMatrix_VAL, Vgene_expression_VAL,file="Data/RepertoireResults_VAL.Rdata")
+save(summaryMatrix_VAL, Vgene_expression_VAL,patient_data,file="Data/RepertoireResults_VAL.Rdata")
 
 
