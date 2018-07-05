@@ -87,3 +87,4 @@ plot_heatmap <- function(clin,norm_data_rlog, categ1, categ2, results, color){
   p<-pheatmap(xtst, annotation = annotation.col, annotation_colors = ann_colors,show_rownames=T,border_color=F)
   return(p)
 }
+
