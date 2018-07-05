@@ -147,15 +147,13 @@ id_overlap<-match(results_CMR_AMR_ENET$name,results_CMR_AMR_DEseq$name)
 ## AMR vs CMR vs STA ###
 ########################
 ## 1. Using Random Forest to classify the three categories (VSURF to select the gene of interest)
-set.seed(54)
-load("Data/norm_data_rlog_filter.Rdata")
 
-fit<-VSURF(x = t(norm_data_rlog), y=clin, parallel = TRUE,ncores=4)
-save(fit,file="Results/RNAseq/Genes_VSURF.Rdata")
+#fit<-VSURF(x = t(norm_data_rlog), y=clin, parallel = TRUE,ncores=4)
+#save(fit,file="Results/RNAseq/Genes_VSURF.Rdata")
 
 load("Results/RNAseq/Genes_VSURF.Rdata")
 
-genes<-data.frame(norm_data_rlog[fit$varselect.interp,]) ##10 genes
+genes<-data.frame(norm_data_rlog[fit$varselect.interp,]) ##33 genes
 
 id<-match(rownames(genes),annotation$Ensemble_id)
 rownames(genes)<-annotation$name[id]
@@ -173,7 +171,7 @@ annotation.col$Type <- factor(clin)
 COLOR = brewer.pal(4,"Set2")
 ann_colors = list(Type = c("STA" = COLOR [1] ,"AMR" = COLOR[3], "CMR" = COLOR[2]))
 
-tiff(filename = "Results/RNAseq/heatmap_RF_NoncodingGenes.tiff", width = 3000, height = 2000, res = 300)
+tiff(filename = "Results/RNAseq/heatmap_3categ_RF.tiff", width = 3000, height = 2000, res = 300)
 pheatmap(xtst, annotation = annotation.col,border_color=F, annotation_colors = ann_colors,show_rownames=T)
 dev.off()
 
@@ -181,7 +179,7 @@ dev.off()
 ## 2. Using multinomial ENET
 ###Applied ENET
 alphalist<-seq(0.01,0.99,by=0.01)
-set.seed(33)
+set.seed(54)
 elasticnet<-lapply(alphalist, function(a){try(cv.glmnet(t(norm_data_rlog),clin,family="multinomial",type.multinomial = "grouped"
                                                         ,standardize=TRUE,alpha=a,nfolds=5))})
 xx<-rep(NA,length(alphalist))
@@ -203,6 +201,13 @@ genes<-rownames(enet$beta[[2]])[which(enet$beta[[2]]!=0)]
 coef1<-enet$beta[[1]][which(enet$beta[[1]]!=0)]
 coef2<-enet$beta[[2]][which(enet$beta[[2]]!=0)]
 results<-annotation[match(genes,annotation$Ensemble_id),]
+
+###Obtain the FC
+id_sign<-match(results$Ensemble_id,rownames(norm_data_rlog))
+results$mean_AMR<-apply(norm_data_rlog[id_sign,which(clin=="AMR")],1,mean)
+results$mean_CMR<-apply(norm_data_rlog[id_sign,which(clin=="CMR")],1,mean)
+results$mean_STA<-apply(norm_data_rlog[id_sign,which(clin=="STA")],1,mean)
+
 write.csv(cbind(results,coef1,coef2),"Results/RNAseq//genes.enet.multinomial.csv",row.names = F)
 
 ###Plot the results
@@ -221,7 +226,18 @@ annotation.col$Type <- factor(clin)
 COLOR = brewer.pal(4,"Set2")
 ann_colors = list(Type = c("STA" = COLOR [1] ,"AMR" = COLOR[3], "CMR" = COLOR[2]))
 
-tiff(filename = "Results/RNAseq/heatmap_ENET_multinomial_ALL.tiff", width = 3000, height = 2000, res = 300)
-pheatmap(xtst, annotation = annotation.col,border_color=F, annotation_colors = ann_colors,show_rownames=T)
+tiff(filename = "Results/RNAseq/heatmap_ENET_multinomial.tiff", width = 3000, height = 2000, res = 300)
+out<-pheatmap(xtst, annotation = annotation.col,border_color=F, annotation_colors = ann_colors,show_rownames=T)
 dev.off()
 
+cluster<-sort(cutree(out$tree_row, k=3))
+id_clust<-match(results$name,names(cluster))    
+results$cluster<-cluster[id_clust]
+write.csv(results,"Results/RNAseq//genes.enet.multinomial.csv",row.names = F)
+plot(out$tree_row)
+abline(h=9, col="red", lty=2, lwd=2)
+
+
+##################################
+### Analysis of the final data ###
+##################################
