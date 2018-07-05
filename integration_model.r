@@ -28,7 +28,7 @@ load("Data/norm_data_rlog_filter.Rdata")
 
 ###Applied ENET
 alphalist<-seq(0.01,0.99,by=0.01)
-set.seed(33)
+set.seed(54)
 elasticnet<-lapply(alphalist, function(a){try(cv.glmnet(t(norm_data_rlog),summaryMatrix$Alpha_Beta_ratio_expression,standardize=TRUE,
                                                         alpha=a,nfolds=5))})
 xx<-rep(NA,length(alphalist))
