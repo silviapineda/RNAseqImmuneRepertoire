@@ -60,7 +60,7 @@ table(annotation[id_genes,"type_gene"])
 
 dds <- DESeq(dds_filter) # N.B. Takes ~ 2 min.
 res1 <- results(dds, contrast=c("type","AMR", "STA"), alpha = .05) #length(which(res1$padj<0.05)) 5,399
-res2 <- results(dds, contrast=c("type","STA","CMR"), alpha = .05) #length(which(res2$padj<0.05)) 0
+res2 <- results(dds, contrast=c("type","CMR","STA"), alpha = .05) #length(which(res2$padj<0.05)) 0
 res3 <- results(dds, contrast=c("type","AMR","CMR"), alpha = .05) #length(which(res3$padj<0.05)) 2,947
 
 ##################
@@ -202,13 +202,7 @@ coef1<-enet$beta[[1]][which(enet$beta[[1]]!=0)]
 coef2<-enet$beta[[2]][which(enet$beta[[2]]!=0)]
 results<-annotation[match(genes,annotation$Ensemble_id),]
 
-###Obtain the FC
-id_sign<-match(results$Ensemble_id,rownames(norm_data_rlog))
-results$mean_AMR<-apply(norm_data_rlog[id_sign,which(clin=="AMR")],1,mean)
-results$mean_CMR<-apply(norm_data_rlog[id_sign,which(clin=="CMR")],1,mean)
-results$mean_STA<-apply(norm_data_rlog[id_sign,which(clin=="STA")],1,mean)
-
-write.csv(cbind(results,coef1,coef2),"Results/RNAseq//genes.enet.multinomial.csv",row.names = F)
+write.csv(cbind(results,coef1,coef2),"Results/RNAseq/genes.enet.multinomial.csv",row.names = F)
 
 ###Plot the results
 id_gene<-match(genes,rownames(norm_data_rlog))
@@ -233,11 +227,23 @@ dev.off()
 cluster<-sort(cutree(out$tree_row, k=3))
 id_clust<-match(results$name,names(cluster))    
 results$cluster<-cluster[id_clust]
-write.csv(results,"Results/RNAseq//genes.enet.multinomial.csv",row.names = F)
 plot(out$tree_row)
 abline(h=9, col="red", lty=2, lwd=2)
 
+###Obtain the FC
+Log2FC_AMR_STA<-res1$log2FoldChange
+names(Log2FC_AMR_STA)<-rownames(res1)
+Log2FC_CMR_STA<-res2$log2FoldChange
+names(Log2FC_CMR_STA)<-rownames(res2)
+Log2FC_AMR_CMR<-res3$log2FoldChange
+names(Log2FC_AMR_CMR)<-rownames(res3)
 
-##################################
-### Analysis of the final data ###
-##################################
+id_FC<-match(results$Ensemble_id,names(Log2FC_AMR_STA))
+results$Log2FC_AMR_STA<-Log2FC_AMR_STA[id_FC]
+id_FC<-match(results$Ensemble_id,names(Log2FC_CMR_STA))
+results$Log2FC_CMR_STA<-Log2FC_CMR_STA[id_FC]
+id_FC<-match(results$Ensemble_id,names(Log2FC_AMR_CMR))
+results$Log2FC_AMR_CMR<-Log2FC_AMR_CMR[id_FC]
+
+write.csv(results,"Results/RNAseq/genes.enet.multinomial.csv",row.names = F)
+
