@@ -133,7 +133,7 @@ dev.off()
 
 #### The data needs to be normalized by the unmapped reads 
 load("Data/SummaryMatrixReadsFromMIXCR.Rdata")
-totalReads<-read.table("Data/Transplant//total_reads.txt",sep=";")
+totalReads<-read.table("Data/Transplant/total_reads.txt",sep=";")
 
 ##Find the samples we have in getex_gene_counts
 id<-match(rownames(summaryMatrix),as.character(totalReads$V1))
