@@ -2,7 +2,7 @@ import glob
 
 ###Read the file in gtf 
 filenames = glob.glob("*_aligments_report.txt")
-fout = open("/home/pinedasans/ImmuneRep_RNAseq/total_reads_GTEX.txt",'w')
+fout = open("/home/pinedasans/ImmuneRep_RNAseq/total_reads.txt",'w')
 for f in filenames:
     print(f)
     sample = f[1:11]
