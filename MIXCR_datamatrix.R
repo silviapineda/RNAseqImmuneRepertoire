@@ -70,3 +70,8 @@ clonalData$Gene <- coalesce(cloneGeneV, cloneGeneD, cloneGeneJ)
 
 # Save the data
 save(alignmentData, clonalData, file = "Data/dataset_MIXCR.Rdata")
+
+
+AlignmentTR<-alignmentData[which(alignmentData$Gene=="TRA" | alignmentData$Gene=="TRB" |alignmentData$Gene=="TRG" | alignmentData$Gene=="TRD"),c("readId","readSequence","bestVGene","bestDGene","bestJGene","Gene","Sample")]
+AlignmentTR_unique<-AlignmentTR[!duplicated(AlignmentTR$readSequence),]
+write.csv(AlignmentTR_unique,"alignmentTR_unique.csv")
