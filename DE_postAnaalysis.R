@@ -14,7 +14,9 @@ print(x)
 ### Author: Silvia Pineda
 ### Date: October, 2017
 ############################################################################################
-
+library("RColorBrewer")
+library("igraph")
+library("qgraph")
 
 working_directory<-"/Users/Pinedasans/ImmuneRep_RNAseq/"
 setwd(working_directory)
@@ -238,19 +240,128 @@ chisq.test(counts) #p-value =0.2
 #STA
 counts=matrix(data=c(15,15,(15420-15),(11125-15)),nrow=2)
 chisq.test(counts) #p-value =0.5
+#Total
+counts=matrix(data=c(63,39,(15420-63),(11125-39)),nrow=2)
+chisq.test(counts) #p-value =0.5
 
-###Correlation with the clinical variables
+
+###############################################
+### Network analysis with clinical variables ##
+###############################################
 id_genes<-match(results$Ensemble_id,rownames(norm_data_rlog))
 norm_data_rlog_results<-norm_data_rlog[id_genes,]
 
-clin_vars<-clinData[,c(5:17)]
+#put the names of the genes
+id_genes<-match(rownames(norm_data_rlog_results),results$Ensemble_id)
+rownames(norm_data_rlog_results)<-results$name[id_genes]
 
-cor<-matrix(NA,nrow(norm_data_rlog_results),ncol(clin_vars))
+clin_vars<-clinData[,c(5:17)]
+colnames(clin_vars)<-c("ag","ai","at","ti","ptc","av","aah","cg","ci","ct","cv","cm","C4d")
+rownames(clin_vars)<-clinData$Individual_id
+####Correlation analysis
+cor<-rep(NA,ncol(clin_vars))
+p<-rep(NA,ncol(clin_vars))
+cor_network<-list()
 for (i in 1:nrow(norm_data_rlog_results)){
   for (j in 1:ncol(clin_vars)){
-    cor[i,j]<-cor(norm_data_rlog_results[i,],clin_vars[,j],use="na.or.complete")
+    p[j]<-cor.test(norm_data_rlog_results[i,],clin_vars[,j],use="na.or.complete")$p.value
+    cor[j]<-cor(norm_data_rlog_results[i,],clin_vars[,j],use="na.or.complete","spearman")
   }
+  sign<-cor[which(p<0.01)]
+  names(sign)<-colnames(clin_vars)[which(p<0.01)]
+  cor_network[[i]]<-sign
+}
+names(cor_network)<-rownames(norm_data_rlog_results)
+
+###Multivarate analysis per gene
+p_network<-list()
+for(i in 1:nrow(norm_data_rlog_results)){
+  lm_results<-coef(summary(lm(norm_data_rlog_results[i,]~ag+ai+at+ti+ptc+av+aah+cg+ci+ct+cv+cm+C4d,
+                              data = clin_vars)))[,4]
+  sign<-lm_results[which(lm_results<0.01)]
+  p_network[[i]]<-sign[-1]
+    
 }
 
-colnames(cor)<-colnames(clin_vars)
-rownames(cor)<-rownames(norm_data_rlog_results)
+names(p_network)<-rownames(norm_data_rlog_results)
+
+####Linear regression
+lm_pvalue<-rep(NA,ncol(clin_vars))
+lm_coef<-rep(NA,ncol(clin_vars))
+lm_network_p<-list()
+lm_network_c<-list()
+for (i in 1:nrow(norm_data_rlog_results)){
+  for (j in 1:ncol(clin_vars)){
+    lm_pvalue[j]<-coef(summary(lm(norm_data_rlog_results[i,]~clin_vars[,j], data = clin_vars)))[2,4]
+    lm_coef[j]<-coef(summary(lm(norm_data_rlog_results[i,]~clin_vars[,j], data = clin_vars)))[2,1]
+  }
+  sign_pvalue<-lm_pvalue[which(lm_pvalue<0.01)]
+  sign_coef<-lm_coef[which(lm_pvalue<0.01)]
+  names(sign_pvalue)<-colnames(clin_vars)[which(lm_pvalue<0.01)]
+  names(sign_coef)<-colnames(clin_vars)[which(lm_pvalue<0.01)]
+  lm_network_p[[i]]<-sign_pvalue
+  lm_network_c[[i]]<-sign_coef
+}
+names(lm_network_p)<-rownames(norm_data_rlog_results)
+names(lm_network_c)<-rownames(norm_data_rlog_results)
+
+##Build the network
+# ##For p-values
+# edges<- data.frame(
+#   Genes = rep(names(p_network), lapply(p_network, length)),Clin = unlist(lapply(p_network, names)),
+#   value = abs(log(unlist(p_network),10)))
+# ##For correlation values
+# edges<- data.frame(
+#   Genes = rep(names(cor_network), lapply(cor_network, length)),Clin = unlist(lapply(cor_network,names)),
+#   value = abs(unlist(cor_network)))
+
+##For lm
+edges<- data.frame(
+  Genes = rep(names(lm_network_p), lapply(lm_network_p, length)), Clin = unlist(lapply(lm_network_p, names)),
+  pvalue = abs(log(unlist(lm_network_p),10)), coef = unlist(lm_network_c))
+
+edges$color<-ifelse(edges$coef<0,"darkgoldenrod3","gray56")
+
+#Unique Genes with edges
+Genes<-as.character(unique(edges$Genes))
+#All genes significant in the DE analysis
+#Genes<-as.character(results$name)
+id_AMR<-na.omit(match(results$name[which(results$cluster=="AMR")],Genes))
+id_CMR<-na.omit(match(results$name[which(results$cluster=="CMR")],Genes))
+id_STA<-na.omit(match(results$name[which(results$cluster=="STA")],Genes))
+
+nodes<-c(Genes[id_AMR],Genes[id_CMR],Genes[id_STA],colnames(clin_vars))
+COLOR = brewer.pal(4,"Pastel1")
+nodes<-cbind(nodes,c(rep(COLOR[1],length(id_AMR)),rep(COLOR[2],length(id_CMR)),
+                     rep(COLOR[3],length(id_STA)),rep(COLOR[4],ncol(clin_vars))))
+nodes<-data.frame(cbind(nodes,c(rep(5,length(Genes)),rep(10,ncol(clin_vars)))))
+colnames(nodes)<-c("names","color","size")
+nodes$size<-as.numeric(as.character(nodes$size))
+
+
+
+#Make the graph and plot
+net <- graph_from_data_frame(d = edges, vertices = nodes,directed = F)
+
+E(net)$width<-E(net)$pvalue
+tiff(paste("Results/RNAseq/network_lm_01.tiff",sep=""),res=300,h=5000,w=5000)
+l <- layout_with_fr(net)
+l <- norm_coords(l, ymin=-1, ymax=1, xmin=-1, xmax=1)
+plot(net,vertex.label.color="black",vertex.label.cex=1.3,layout=l*1)
+legend("topleft", c("AMR","CMR", "STA","Clin"), pch=20,
+       col=COLOR[1:4],  pt.cex=5,cex=1.5, bty="n", ncol=1)
+legend("bottomleft", c("Neg-association","Pos-associatiom"), lty=1,lwd=5,
+       col=c("darkgoldenrod3","gray56"), cex=1.5, bty="n", ncol=1)
+dev.off()
+
+##Try other ways of layout
+e <- get.edgelist(net,names=F)
+l <- qgraph.layout.fruchtermanreingold(e,vcount=vcount(net))
+l <- qgraph.layout.fruchtermanreingold(e,vcount=vcount(net),
+            area=8*(vcount(net)^2),repulse.rad=(vcount(net)^3.1))
+plot(net,layout=l,vertex.size=4,vertex.label=NA)
+
+
+#################################################################
+## Study how non-coding genes are associated with coding-genes ##
+################################################################
