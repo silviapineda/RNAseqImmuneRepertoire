@@ -77,18 +77,19 @@ annotation_sign$log2FC<-res1$log2FoldChange[which(res1$padj < 0.05)]
 results_STA_AMR_DEseq<-annotation_sign
 write.csv(results_STA_AMR_DEseq, "Results/RNAseq/results_STA_AMR_DEseq.csv", row.names = F)
 
+COLOR = brewer.pal(4,"Pastel1")
+
 ###Plot the results
 tiff(filename = "Results/RNAseq/heatmap_AMR_STA_Dseq2.tiff", width = 4000, height = 3000,  res = 300)
-plot_heatmap(clin,norm_data_rlog, "AMR", "STA", results_STA_AMR_DEseq, color=COLOR[c(1,3)])
+plot_heatmap(clin,norm_data_rlog, "AMR", "STA", results_STA_AMR_DEseq, color=COLOR[c(3,1)])
 dev.off()
 
 #2. ENET with binomial distribution
 results_STA_AMR_ENET<-ENET_binomial(clin, "AMR", "STA", norm_data_rlog) ##60 genes
 write.csv(results_STA_AMR_ENET,"Results/RNAseq/results_STA_AMR_ENET.csv",row.names = F)
 
-COLOR = brewer.pal(4,"Set2")
 tiff(filename = "Results/RNAseq/heatmap_AMR_STA_ENET.tiff", width = 4000, height = 3000,  res = 300)
-plot_heatmap(clin,norm_data_rlog, "AMR", "STA", results_STA_AMR, color=COLOR[c(1,3)])
+plot_heatmap(clin,norm_data_rlog, "AMR", "STA", results_STA_AMR_ENET, color=COLOR[c(3,1)])
 dev.off()
 
 id_overlap<-match(results_STA_AMR_ENET$name,results_STA_AMR_DEseq$name)
@@ -109,7 +110,7 @@ write.csv(results_STA_CMR_ENET,"Results/RNAseq/results_STA_CMR_ENET.csv",row.nam
 
 id<-match(results_STA_CMR_ENET$Ensemble_id,rownames(norm_data_rlog))
 tiff(filename = "Results/RNAseq/heatmap_CMR_STA_ENET.tiff", width = 2000, height = 2000,  res = 300)
-boxplot(norm_data_rlog[id,which(clin!="AMR")]~factor(clin[which(clin!="AMR")]),col=COLOR[c(1,2)])
+boxplot(norm_data_rlog[id,which(clin!="AMR")]~factor(clin[which(clin!="AMR")]),col=COLOR[c(3,2)])
 dev.off()
 
 ##################
@@ -128,16 +129,15 @@ write.csv(results_CMR_AMR_DEseq, "Results/RNAseq/results_CMR_AMR_DEseq.csv", row
 
 ###Plot the results
 tiff(filename = "Results/RNAseq/heatmap_CMR_AMR_Dseq2.tiff", width = 4000, height = 3000,  res = 300)
-plot_heatmap(clin,norm_data_rlog, "AMR", "CMR", results_STA_AMR_DEseq, color=COLOR[c(2,3)])
+plot_heatmap(clin,norm_data_rlog, "AMR", "CMR", results_CMR_AMR_DEseq, color=COLOR[c(2,1)])
 dev.off()
 
 #2. ENET with binomial distribution
 results_CMR_AMR_ENET<-ENET_binomial(clin, "AMR", "CMR", norm_data_rlog) ##21 genes
 write.csv(results_CMR_AMR_ENET,"Results/RNAseq/results_CMR_AMR_ENET.csv",row.names = F)
 
-COLOR = brewer.pal(4,"Set2")
 tiff(filename = "Results/RNAseq/heatmap_AMR_CMR_ENET.tiff", width = 4000, height = 3000,  res = 300)
-plot_heatmap(clin,norm_data_rlog, "AMR", "CMR", results_CMR_AMR_ENET, color=COLOR[c(2,3)])
+plot_heatmap(clin,norm_data_rlog, "AMR", "CMR", results_CMR_AMR_ENET, color=COLOR[c(2,1)])
 dev.off()
 
 id_overlap<-match(results_CMR_AMR_ENET$name,results_CMR_AMR_DEseq$name)
@@ -168,8 +168,7 @@ xtst<-t(xts)
 rownames <- colnames(significantResults)
 annotation.col <- data.frame(row.names = rownames)
 annotation.col$Type <- factor(clin)
-COLOR = brewer.pal(4,"Set2")
-ann_colors = list(Type = c("STA" = COLOR [1] ,"AMR" = COLOR[3], "CMR" = COLOR[2]))
+ann_colors = list(Type = c("AMR" = COLOR [1] ,"CMR" = COLOR[2], "STA" = COLOR[3]))
 
 tiff(filename = "Results/RNAseq/heatmap_3categ_RF.tiff", width = 3000, height = 2000, res = 300)
 pheatmap(xtst, annotation = annotation.col,border_color=F, annotation_colors = ann_colors,show_rownames=T)
@@ -205,7 +204,8 @@ results<-annotation[match(genes,annotation$Ensemble_id),]
 write.csv(cbind(results,coef1,coef2),"Results/RNAseq/genes.enet.multinomial.csv",row.names = F)
 
 ###Plot the results
-id_gene<-match(genes,rownames(norm_data_rlog))
+results<-read.csv("Results/RNAseq/genes.enet.multinomial.csv")
+id_gene<-match(results$Ensemble_id,rownames(norm_data_rlog))
 significantResults<-norm_data_rlog[na.omit(id_gene),]
 
 id<-match(rownames(significantResults),annotation$Ensemble_id)
@@ -217,8 +217,7 @@ xtst<-t(xts)
 rownames <- colnames(significantResults)
 annotation.col <- data.frame(row.names = rownames)
 annotation.col$Type <- factor(clin)
-COLOR = brewer.pal(4,"Set2")
-ann_colors = list(Type = c("STA" = COLOR [1] ,"AMR" = COLOR[3], "CMR" = COLOR[2]))
+ann_colors = list(Type = c("AMR" = COLOR [1] ,"CMR" = COLOR[2], "STA" = COLOR[3]))
 
 tiff(filename = "Results/RNAseq/heatmap_ENET_multinomial.tiff", width = 3000, height = 2000, res = 300)
 out<-pheatmap(xtst, annotation = annotation.col,border_color=F, annotation_colors = ann_colors,show_rownames=T)
