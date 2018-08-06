@@ -172,11 +172,12 @@ summary(lm(clin_data$eGFR..time.Bx.~clin_data$clin))
 chisq.test(table(clin_data$GraftLossCateg,clin_data$clin))
 
 #Immunosuppression
-table(clin_data$Immunosuppression)
+table(clin_data$Induction..Bxb..1..or.rATg..2..none..0..)
 
-summary(glm(summaryMatrix$Alpha_Beta_ratio_expression~clin_data$clin+clin_data$Immunosuppression)) #
-boxplot(summaryMatrix$Alpha_Beta~clin_data$donor.age,col=COLOR)
+summary(glm(summaryMatrix$Alpha_Beta_ratio_expression~clin_data$clin+factor(clin_data$Induction..Bxb..1..or.rATg..2..none..0..))) #
+boxplot(summaryMatrix$Alpha_Beta[which(clin=="STA")]~clin_data$Induction..Bxb..1..or.rATg..2..none..0..[which(clin=="STA")],col=COLOR)
 
+summary(glm(summaryMatrix$Alpha_Beta[which(clin=="STA")]~factor(clin_data$Induction..Bxb..1..or.rATg..2..none..0..[which(clin=="STA")])))
 
 
 #####################
