@@ -24,7 +24,9 @@ setwd(working_directory)
 ###Load the data
 load("Data/norm_data_rlog_filter.Rdata")
 
-results<-read.csv("Results/RNAseq/genes.enet.multinomial.csv")
+results_multi<-read.csv("Results/RNAseq/genes.enet.multinomial.csv")
+results_AMR_STA<-read.csv("Results/RNAseq/results_STA_AMR_ENET.csv")
+results_AMR_CMR<-read.csv("Results/RNAseq/results_CMR_AMR_ENET.csv")
 
 ##### Clinical Data Analysis #######
 clinData<-read.csv("Data/ClinicalData.csv")
@@ -214,35 +216,63 @@ summary(lm(clinData$cm..mesangial.expansion.~clinData$clin))
 ##########################
 ### Enrichment Analysis ##
 ##########################
-id_filter_genes<-match(rownames(norm_data_rlog),annotation$Ensemble_id)
-annotation_filter<-annotation[id_filter_genes,] #26,545
+##AMR vs. STA
+table(results_AMR_STA$type_gene)
+table(results_AMR_STA$cluster)
+table(results_AMR_STA$type_gene,results_AMR_STA$cluster)
+### AMR in non-coding is enriched
+counts=matrix(data=c(13,30,15,45),nrow=2)
+fisher.test(counts) #p-value = 0.6
 
-###Non-coding
-results$geneType<-ifelse(results$type_gene=="protein_coding","coding","non-coding")
-tab<-table(results$geneType,results$cluster)
-chisq.test(tab) #p-value = 0.225
+##Is enriched respect the selected in the STA?
+results_AMR_STA$type_gene_2<-ifelse(results_AMR_STA$type_gene!="protein_coding","non-coding","coding")
+tab<-table(results_AMR_STA$cluster,results_AMR_STA$type_gene_2)
+fisher.test(tab) #p-value = 0.2
 
-###lincRNA
-results_lncRNA<-results[which(results$type_gene=="protein_coding" | results$type_gene=="lincRNA"),]
-tab<-table(results_lncRNA$geneType,results_lncRNA$cluster)
-fisher.test(tab) #p-value = 0.5
+##AMR vs. CMR
+table(results_AMR_CMR$type_gene)
+table(results_AMR_CMR$cluster)
+table(results_AMR_CMR$type_gene,results_AMR_CMR$cluster)
+### AMR in non-coding
+counts=matrix(data=c(7,8,8,13),nrow=2)
+fisher.test(counts) #p-value = 0.7
+
+##Is enriched respect the selected in the STA?
+results_AMR_CMR$type_gene_2<-ifelse(results_AMR_CMR$type_gene!="protein_coding","non-coding","coding")
+tab<-table(results_AMR_CMR$cluster,results_AMR_CMR$type_gene_2)
+fisher.test(tab) #p-value = 0.3
 
 
-tab_total<-table(annotation_filter$type_gene)
-dim(annotation_filter)
+##AMR vs. CMR vs. STA
+table(results_multi$type_gene)
+table(results_multi$cluster)
+table(results_multi$type_gene,results_multi$cluster)
+results_multi$type_gene_2<-ifelse(results_multi$type_gene!="protein_coding","non-coding","coding")
 
-#AMR
-counts=matrix(data=c(32,18,(15420-32),(11125-18)),nrow=2)
-chisq.test(counts) #p-value =0.5
-#CMR
-counts=matrix(data=c(16,6,(15420-16),(11125-6)),nrow=2)
-chisq.test(counts) #p-value =0.2
-#STA
-counts=matrix(data=c(15,15,(15420-15),(11125-15)),nrow=2)
-chisq.test(counts) #p-value =0.5
-#Total
-counts=matrix(data=c(63,39,(15420-63),(11125-39)),nrow=2)
-chisq.test(counts) #p-value =0.5
+### AMR in non-coding
+counts=matrix(data=c(16,32,39,63),nrow=2)
+fisher.test(counts) #p-value = 0.8
+
+### CMR in non-coding
+counts=matrix(data=c(6,16,39,63),nrow=2)
+fisher.test(counts) #p-value = 0.5
+
+### STA in non-coding
+counts=matrix(data=c(15,15,39,63),nrow=2)
+fisher.test(counts) #p-value = 0.3
+
+##Is enriched respect the selected in the STA?
+tab<-table(results_multi$cluster,results_multi$type_gene_2)
+fisher.test(tab) #p-value = 0.2
+
+################################
+### Overlap between results ###
+###############################
+results_AMR_CMR[which(results_AMR_CMR$name %in% results_AMR_STA$name),] #3 genes are in common
+results_AMR_STA[which(results_AMR_STA$name %in% results_AMR_CMR$name),]
+
+results_multi[which(results_AMR_STA$name %in% results_multi$name),]
+results_multi[which(results_AMR_CMR$name %in% results_multi$name),]
 
 
 ###############################################
@@ -365,3 +395,79 @@ plot(net,layout=l,vertex.size=4,vertex.label=NA)
 #################################################################
 ## Study how non-coding genes are associated with coding-genes ##
 ################################################################
+
+##separate between coding and non-coding
+results_coding<-results_multi[which(results_multi$type_gene=="protein_coding"),]
+results_noncoding<-results_multi[which(results_multi$type_gene!="protein_coding"),]
+
+##norm data with coding
+id_sign_coding<-match(results_coding$Ensemble_id,rownames(norm_data_rlog))
+norm_data_rlog_coding<-norm_data_rlog[id_sign_coding,]
+rownames(norm_data_rlog_coding)<-results_coding$name
+
+##norm data with non-coding
+id_sign_noncoding<-match(results_noncoding$Ensemble_id,rownames(norm_data_rlog))
+norm_data_rlog_noncoding<-t(norm_data_rlog[id_sign_noncoding,])
+colnames(norm_data_rlog_noncoding)<-results_noncoding$name
+
+###Find which non-coding are associated with coding genes
+####Linear regression
+lm_pvalue<-rep(NA,ncol(norm_data_rlog_coding))
+lm_coef<-rep(NA,ncol(norm_data_rlog_coding))
+lm_noncoding_p<-list()
+lm_noncoding_c<-list()
+for (i in 1:ncol(norm_data_rlog_noncoding)){
+  for (j in 1:nrow(norm_data_rlog_coding)){
+    lm_pvalue[j]<-coef(summary(lm(norm_data_rlog_noncoding[,i]~norm_data_rlog_coding[j,])))[2,4]
+    lm_coef[j]<-coef(summary(lm(norm_data_rlog_noncoding[,i]~norm_data_rlog_coding[j,])))[2,1]
+  }
+  sign_pvalue<-lm_pvalue[which(lm_pvalue<0.01)]
+  sign_coef<-lm_coef[which(lm_pvalue<0.01)]
+  names(sign_pvalue)<-rownames(norm_data_rlog_coding)[which(lm_pvalue<0.01)]
+  names(sign_coef)<-rownames(norm_data_rlog_coding)[which(lm_pvalue<0.01)]
+  lm_noncoding_p[[i]]<-sign_pvalue
+  lm_noncoding_c[[i]]<-sign_coef
+}
+names(lm_noncoding_p)<-colnames(norm_data_rlog_noncoding)
+names(lm_noncoding_c)<-colnames(norm_data_rlog_noncoding)
+
+
+##For lm
+edges<- data.frame(
+  Genes = rep(names(lm_noncoding_p), lapply(lm_noncoding_p, length)), coding = unlist(lapply(lm_noncoding_p, names)),
+  pvalue = abs(log(unlist(lm_noncoding_p),10)), coef = unlist(lm_noncoding_c))
+
+edges$color<-ifelse(edges$coef<0,"darkgoldenrod3","gray56")
+
+#Unique Genes with edges
+Genes<-c(as.character(unique(edges$Genes)),as.character(edges$coding))
+#All genes significant in the DE analysis
+#Genes<-as.character(results$name)
+id_AMR<-na.omit(match(results_multi$name[which(results_multi$cluster=="AMR")],Genes))
+id_CMR<-na.omit(match(results_multi$name[which(results_multi$cluster=="CMR")],Genes))
+id_STA<-na.omit(match(results_multi$name[which(results_multi$cluster=="STA")],Genes))
+
+nodes<-c(Genes[id_AMR],Genes[id_CMR],Genes[id_STA],colnames(norm_data_rlog_noncoding))
+COLOR = brewer.pal(4,"Pastel1")
+nodes<-cbind(nodes,c(rep(COLOR[1],length(id_AMR)),rep(COLOR[2],length(id_CMR)),
+                     rep(COLOR[3],length(id_STA)),rep(COLOR[4],ncol(norm_data_rlog_noncoding))))
+nodes<-data.frame(cbind(nodes,c(rep(5,length(Genes)),rep(5,ncol(norm_data_rlog_noncoding)))))
+colnames(nodes)<-c("names","color","size")
+nodes$size<-as.numeric(as.character(nodes$size))
+
+#Make the graph and plot
+net <- graph_from_data_frame(d = edges, vertices = nodes,directed = F)
+
+E(net)$width<-E(net)$pvalue
+tiff(paste("Results/RNAseq/network_coding-noncoding.tiff",sep=""),res=300,h=5000,w=5000)
+l <- layout_with_fr(net)
+l <- norm_coords(l, ymin=-1, ymax=1, xmin=-1, xmax=1)
+plot(net,vertex.label.color="black",vertex.label.cex=1.3,layout=l*1)
+legend("topleft", c("AMR","CMR", "STA","Clin"), pch=20,
+       col=COLOR[1:4],  pt.cex=5,cex=1.5, bty="n", ncol=1)
+legend("bottomleft", c("Neg-association","Pos-associatiom"), lty=1,lwd=5,
+       col=c("darkgoldenrod3","gray56"), cex=1.5, bty="n", ncol=1)
+dev.off()
+
+
+
