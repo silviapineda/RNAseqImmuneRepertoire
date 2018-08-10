@@ -24,9 +24,11 @@ setwd(working_directory)
 ###Load the data
 load("Data/norm_data_rlog_filter.Rdata")
 
-results_multi<-read.csv("Results/RNAseq/genes.enet.multinomial.csv")
+results_multi<-read.csv("Results/RNAseq/results_AMR_CMR_STA_ENET.csv")
 results_AMR_STA<-read.csv("Results/RNAseq/results_STA_AMR_ENET.csv")
 results_AMR_CMR<-read.csv("Results/RNAseq/results_CMR_AMR_ENET.csv")
+results_REJ_STA<-read.csv("Results/RNAseq/results_REJ_STA_ENE_codingT.csv")
+results_REJ_STA_DESeq<-read.csv("Results/RNAseq/results_STA_REJ_DEseq.csv")
 
 ##### Clinical Data Analysis #######
 clinData<-read.csv("Data/ClinicalData.csv")
@@ -470,4 +472,27 @@ legend("bottomleft", c("Neg-association","Pos-associatiom"), lty=1,lwd=5,
 dev.off()
 
 
+################################
+## Match with microarray data ##
+###############################
+geneMicroarray<-read.csv("Data/MicroaarayGeneList.csv")
+match(results_multi$name,geneMicroarray$GeneSymbol)
+match(results_AMR_CMR$name,geneMicroarray$GeneSymbol)
+match(results_AMR_STA$name,geneMicroarray$GeneSymbol)
+geneMicroarray$GeneSymbol[na.omit(match(results_REJ_STA$name,geneMicroarray$GeneSymbol))]
 
+geneKsort<-read.csv("Data/kSORT_list.csv")
+match(results_REJ_STA$name,geneKsort$Genes)
+match(results_STA_REJ_DEseq$name,geneKsort$Genes)
+
+geneKurian<-read.csv("Data/kurian_genelist.csv")
+geneKurian$Symbol[na.omit(match(results_REJ_STA$name,geneKurian$Symbol))]
+
+#############################
+## Match with ExomeSeq #####
+############################
+geneExomeSeq<-read.table("/Users/Pinedasans/Catalyst/Results/ResultsEndpointRF.txt",header=T,sep="\t")
+match(results_multi$name,geneExomeSeq$Gene.refGene)
+match(results_AMR_CMR$name,geneExomeSeq$Gene.refGene)
+match(results_AMR_STA$name,geneExomeSeq$Gene.refGene)
+##None match with this list
