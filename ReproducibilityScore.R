@@ -55,3 +55,14 @@ for(i in 35:100){
   genes_ensembl<-rownames(enet$beta[[2]])[which(enet$beta[[2]]!=0)]
   genes[[i]]<-as.character(annotation[match(genes_ensembl,annotation$Ensemble_id),"name"])
 }
+
+save(genes,file = "Results/RNAseq/genes_reproducibilty_scoe.Rdata")
+
+words<-as.character(results$name)
+wt<-matrix(NA,102,100)
+for (i in 1:length(words)){
+  wt[i,] <- sapply(genes, function(x) sum(str_count(x, words[i])))
+}
+rownames(wt)<-words
+results$reproducibility<-rowSums(wt)
+write.csv(results,"Results/RNAseq/results_AMR_CMR_STA_ENET.csv")

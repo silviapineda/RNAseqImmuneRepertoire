@@ -335,7 +335,7 @@ results$Log2FC_CMR_STA<-Log2FC_CMR_STA[id_FC]
 id_FC<-match(results$Ensemble_id,names(Log2FC_AMR_CMR))
 results$Log2FC_AMR_CMR<-Log2FC_AMR_CMR[id_FC]
 
-write.csv(results,"Results/RNAseq/genes.enet.multinomial.csv",row.names = F)
+write.csv(results,"Results/RNAseq/results_AMR_CMR_STA_ENET.csv",row.names = F)
 
 
 ## 2. Using multinomial ENET (Only coding genes)
