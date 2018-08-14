@@ -280,16 +280,17 @@ results_multi[which(results_AMR_CMR$name %in% results_multi$name),]
 ###############################################
 ### Network analysis with clinical variables ##
 ###############################################
-id_genes<-match(results$Ensemble_id,rownames(norm_data_rlog))
+id_genes<-match(results_multi$Ensemble_id,rownames(norm_data_rlog))
 norm_data_rlog_results<-norm_data_rlog[id_genes,]
 
 #put the names of the genes
-id_genes<-match(rownames(norm_data_rlog_results),results$Ensemble_id)
-rownames(norm_data_rlog_results)<-results$name[id_genes]
+id_genes<-match(rownames(norm_data_rlog_results),results_multi$Ensemble_id)
+rownames(norm_data_rlog_results)<-results_multi$name[id_genes]
 
 clin_vars<-clinData[,c(5:17)]
 colnames(clin_vars)<-c("ag","ai","at","ti","ptc","av","aah","cg","ci","ct","cv","cm","C4d")
 rownames(clin_vars)<-clinData$Individual_id
+
 ####Correlation analysis
 cor<-rep(NA,ncol(clin_vars))
 p<-rep(NA,ncol(clin_vars))
@@ -317,7 +318,23 @@ for(i in 1:nrow(norm_data_rlog_results)){
 
 names(p_network)<-rownames(norm_data_rlog_results)
 
-####Linear regression
+##########################
+#### Linear regression ##
+#########################
+##1. Find all the p-values
+pvalue<-matrix(NA,nrow(norm_data_rlog_results),ncol(clin_vars))
+for (i in 1:nrow(norm_data_rlog_results)){
+  for (j in 1:ncol(clin_vars)){
+    pvalue[i,j]<-coef(summary(lm(norm_data_rlog_results[i,]~clin_vars[,j], data = clin_vars)))[2,4]
+  }
+}
+pvalue_adj<-p.adjust(pvalue,method = "fdr")  
+maxp<-max(pvalue_adj[which(pvalue_adj<0.05)])
+grep(maxp, pvalue_adj) #position 1029
+pvalue_array<-as.numeric(pvalue)
+fdr_value<-pvalue_array[1029] #pvalue= 0.007533473 ##This is the FDR correction < 0.05
+
+##2.Build the network (fdr<0.05)
 lm_pvalue<-rep(NA,ncol(clin_vars))
 lm_coef<-rep(NA,ncol(clin_vars))
 lm_network_p<-list()
@@ -327,10 +344,10 @@ for (i in 1:nrow(norm_data_rlog_results)){
     lm_pvalue[j]<-coef(summary(lm(norm_data_rlog_results[i,]~clin_vars[,j], data = clin_vars)))[2,4]
     lm_coef[j]<-coef(summary(lm(norm_data_rlog_results[i,]~clin_vars[,j], data = clin_vars)))[2,1]
   }
-  sign_pvalue<-lm_pvalue[which(lm_pvalue<0.01)]
-  sign_coef<-lm_coef[which(lm_pvalue<0.01)]
-  names(sign_pvalue)<-colnames(clin_vars)[which(lm_pvalue<0.01)]
-  names(sign_coef)<-colnames(clin_vars)[which(lm_pvalue<0.01)]
+  sign_pvalue<-lm_pvalue[which(lm_pvalue<fdr_value)]
+  sign_coef<-lm_coef[which(lm_pvalue<fdr_value)]
+  names(sign_pvalue)<-colnames(clin_vars)[which(lm_pvalue<fdr_value)]
+  names(sign_coef)<-colnames(clin_vars)[which(lm_pvalue<fdr_value)]
   lm_network_p[[i]]<-sign_pvalue
   lm_network_c[[i]]<-sign_coef
 }
@@ -358,9 +375,9 @@ edges$color<-ifelse(edges$coef<0,"darkgoldenrod3","gray56")
 Genes<-as.character(unique(edges$Genes))
 #All genes significant in the DE analysis
 #Genes<-as.character(results$name)
-id_AMR<-na.omit(match(results$name[which(results$cluster=="AMR")],Genes))
-id_CMR<-na.omit(match(results$name[which(results$cluster=="CMR")],Genes))
-id_STA<-na.omit(match(results$name[which(results$cluster=="STA")],Genes))
+id_AMR<-na.omit(match(results_multi$name[which(results_multi$cluster=="AMR")],Genes))
+id_CMR<-na.omit(match(results_multi$name[which(results_multi$cluster=="CMR")],Genes))
+id_STA<-na.omit(match(results_multi$name[which(results_multi$cluster=="STA")],Genes))
 
 nodes<-c(Genes[id_AMR],Genes[id_CMR],Genes[id_STA],colnames(clin_vars))
 COLOR = brewer.pal(4,"Pastel1")
@@ -370,13 +387,11 @@ nodes<-data.frame(cbind(nodes,c(rep(5,length(Genes)),rep(10,ncol(clin_vars)))))
 colnames(nodes)<-c("names","color","size")
 nodes$size<-as.numeric(as.character(nodes$size))
 
-
-
 #Make the graph and plot
 net <- graph_from_data_frame(d = edges, vertices = nodes,directed = F)
 
 E(net)$width<-E(net)$pvalue
-tiff(paste("Results/RNAseq/network_lm_01.tiff",sep=""),res=300,h=5000,w=5000)
+tiff(paste("Results/RNAseq/network_lm_fdr_05.tiff",sep=""),res=300,h=5000,w=5000)
 l <- layout_with_fr(net)
 l <- norm_coords(l, ymin=-1, ymax=1, xmin=-1, xmax=1)
 plot(net,vertex.label.color="black",vertex.label.cex=1.3,layout=l*1)
@@ -414,6 +429,21 @@ colnames(norm_data_rlog_noncoding)<-results_noncoding$name
 
 ###Find which non-coding are associated with coding genes
 ####Linear regression
+
+##1. Find all the p-values
+pvalue<-matrix(NA,ncol(norm_data_rlog_noncoding),nrow(norm_data_rlog_coding))
+for (i in 1:ncol(norm_data_rlog_noncoding)){
+  for (j in 1:nrow(norm_data_rlog_coding)){
+    pvalue[i,j]<-coef(summary(lm(norm_data_rlog_noncoding[,i]~norm_data_rlog_coding[j,])))[2,4]
+  }
+}
+pvalue_adj<-p.adjust(pvalue,method = "fdr")  
+maxp<-max(pvalue_adj[which(pvalue_adj<0.05)])
+grep(maxp, pvalue_adj) #position 1096
+pvalue_array<-as.numeric(pvalue)
+fdr_value<-pvalue_array[1096] #pvalue=0.01070372 ##This is the FDR correction < 0.05
+
+##2. Build the matrix
 lm_pvalue<-rep(NA,ncol(norm_data_rlog_coding))
 lm_coef<-rep(NA,ncol(norm_data_rlog_coding))
 lm_noncoding_p<-list()
@@ -423,16 +453,15 @@ for (i in 1:ncol(norm_data_rlog_noncoding)){
     lm_pvalue[j]<-coef(summary(lm(norm_data_rlog_noncoding[,i]~norm_data_rlog_coding[j,])))[2,4]
     lm_coef[j]<-coef(summary(lm(norm_data_rlog_noncoding[,i]~norm_data_rlog_coding[j,])))[2,1]
   }
-  sign_pvalue<-lm_pvalue[which(lm_pvalue<0.01)]
-  sign_coef<-lm_coef[which(lm_pvalue<0.01)]
-  names(sign_pvalue)<-rownames(norm_data_rlog_coding)[which(lm_pvalue<0.01)]
-  names(sign_coef)<-rownames(norm_data_rlog_coding)[which(lm_pvalue<0.01)]
+  sign_pvalue<-lm_pvalue[which(lm_pvalue<fdr_value)]
+  sign_coef<-lm_coef[which(lm_pvalue<fdr_value)]
+  names(sign_pvalue)<-rownames(norm_data_rlog_coding)[which(lm_pvalue<fdr_value)]
+  names(sign_coef)<-rownames(norm_data_rlog_coding)[which(lm_pvalue<fdr_value)]
   lm_noncoding_p[[i]]<-sign_pvalue
   lm_noncoding_c[[i]]<-sign_coef
 }
 names(lm_noncoding_p)<-colnames(norm_data_rlog_noncoding)
 names(lm_noncoding_c)<-colnames(norm_data_rlog_noncoding)
-
 
 ##For lm
 edges<- data.frame(
@@ -442,18 +471,19 @@ edges<- data.frame(
 edges$color<-ifelse(edges$coef<0,"darkgoldenrod3","gray56")
 
 #Unique Genes with edges
-Genes<-c(as.character(unique(edges$Genes)),as.character(edges$coding))
+coding<-unique(as.character(edges$coding))
+Genes<-c(as.character(unique(edges$Genes)),unique(as.character(edges$coding)))
 #All genes significant in the DE analysis
 #Genes<-as.character(results$name)
-id_AMR<-na.omit(match(results_multi$name[which(results_multi$cluster=="AMR")],Genes))
-id_CMR<-na.omit(match(results_multi$name[which(results_multi$cluster=="CMR")],Genes))
-id_STA<-na.omit(match(results_multi$name[which(results_multi$cluster=="STA")],Genes))
+id_AMR<-na.omit(match(results_multi$name[which(results_multi$cluster=="AMR")],coding))
+id_CMR<-na.omit(match(results_multi$name[which(results_multi$cluster=="CMR")],coding))
+id_STA<-na.omit(match(results_multi$name[which(results_multi$cluster=="STA")],coding))
 
-nodes<-c(Genes[id_AMR],Genes[id_CMR],Genes[id_STA],colnames(norm_data_rlog_noncoding))
+nodes<-c(coding[id_AMR],coding[id_CMR],coding[id_STA],colnames(norm_data_rlog_noncoding))
 COLOR = brewer.pal(4,"Pastel1")
 nodes<-cbind(nodes,c(rep(COLOR[1],length(id_AMR)),rep(COLOR[2],length(id_CMR)),
                      rep(COLOR[3],length(id_STA)),rep(COLOR[4],ncol(norm_data_rlog_noncoding))))
-nodes<-data.frame(cbind(nodes,c(rep(5,length(Genes)),rep(5,ncol(norm_data_rlog_noncoding)))))
+nodes<-data.frame(cbind(nodes,c(rep(5,length(coding)),rep(7,ncol(norm_data_rlog_noncoding)))))
 colnames(nodes)<-c("names","color","size")
 nodes$size<-as.numeric(as.character(nodes$size))
 
@@ -471,6 +501,29 @@ legend("bottomleft", c("Neg-association","Pos-associatiom"), lty=1,lwd=5,
        col=c("darkgoldenrod3","gray56"), cex=1.5, bty="n", ncol=1)
 dev.off()
 
+##Build a co-expression matrix
+cordist <- function(dat) {
+  cor_matrix  <- cor(t(dat))
+  
+  dist_matrix <- as.matrix(dist(dat, diag=TRUE, upper=TRUE))
+  dist_matrix <- log1p(dist_matrix)
+  dist_matrix <- 1 - (dist_matrix / max(dist_matrix))
+  
+  sign(cor_matrix) * ((abs(cor_matrix) + dist_matrix)/ 2)
+}
+sim_matrix <- cordist(norm_data_rlog_results)
+id_coding<-match(rownames(norm_data_rlog_coding),rownames(sim_matrix))
+id_noncoding<-match(colnames(norm_data_rlog_noncoding),rownames(sim_matrix))
+sim_matrix_2<-sim_matrix[id_coding,id_noncoding]
+  
+heatmap_indices <- sample(nrow(sim_matrix_2), 63)
+tiff("Results/RNAseq/CoExpression.tiff",res=300,h=2500,w=4000)
+heatmap.2(t(sim_matrix_2),
+          col=redgreen(75),
+          trace='none', dendrogram='row',
+          main='Similarity matrix',
+          density.info='none', revC=TRUE)
+dev.off()
 
 ################################
 ## Match with microarray data ##
