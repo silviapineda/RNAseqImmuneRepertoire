@@ -190,8 +190,10 @@ norm_data_rlog_coding<-norm_data_rlog[na.omit(id_coding),]
 results_REJ_STA_ENET<-ENET_binomial(clin2, "REJ", "STA", norm_data_rlog_coding) ##327 genes
 write.csv(results_REJ_STA_ENET,"Results/RNAseq/results_REJ_STA_ENE_codingT.csv",row.names = F)
 
+results_REJ_STA_ENET<-read.csv("Results/RNAseq/results_REJ_STA_ENE_codingT.csv")
+
 tiff(filename = "Results/RNAseq/heatmap_REJ_STA_ENET_coding.tiff", width = 4000, height = 3000,  res = 300)
-out<-plot_heatmap(clin2,norm_data_rlog_coding, "REJ", "STA", results_REJ_STA_ENET, color=COLOR[c(2,3)])
+out<-plot_heatmap(clin2,norm_data_rlog, "REJ", "STA", results_REJ_STA_ENET, color=COLOR[c(2,3)])
 dev.off()
 
 ###cluster and similarity
