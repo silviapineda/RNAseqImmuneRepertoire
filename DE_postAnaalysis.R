@@ -20,6 +20,7 @@ library("qgraph")
 library("corrplot")
 library("gplots")
 library("pheatmap")
+library(dplyr)
 
 working_directory<-"/Users/Pinedasans/ImmuneRep_RNAseq/"
 setwd(working_directory)
@@ -498,8 +499,20 @@ id_coding<-match(coding_genes,rownames(sim_matrix))
 id_noncoding<-match(non_coding_genes,rownames(sim_matrix))
 sim_matrix_2<-sim_matrix[id_coding,id_noncoding]
   
+###Find which cluster is up-regulated
+results_multi$name<-as.character(results_multi$name)
+results_multi$name[19]<-c("SEPT2")
+cluster_coding<-results_multi$cluster[match(rownames(sim_matrix_2),results_multi$name)]
+cluster_noncoding<-results_multi$cluster[match(colnames(sim_matrix_2),results_multi$name)]
+COLOR = brewer.pal(4,"Pastel1")
+ann_colors = list(cluster_coding = c("AMR" = COLOR [1] ,"CMR" = COLOR[2], "STA" = COLOR[3]),
+                  cluster_noncoding  = c("AMR" = COLOR [1] ,"CMR" = COLOR[2], "STA" = COLOR[3]))
+names(cluster_coding)<-rownames(sim_matrix_2)
+names(cluster_noncoding)<-colnames(sim_matrix_2)
+
 tiff("Results/RNAseq/SimilarityMatrix.tiff",res=300,h=3000,w=4000)
-pheatmap(sim_matrix_2,border_color=F)
+pheatmap(sim_matrix_2,border_color=F,annotation_colors = ann_colors,
+         annotation_row = as.data.frame(cluster_coding),annotation_col=as.data.frame(cluster_noncoding))
 dev.off()
 
 
