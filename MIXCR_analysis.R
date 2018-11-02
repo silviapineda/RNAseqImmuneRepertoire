@@ -174,11 +174,19 @@ chisq.test(table(clin_data$GraftLossCateg,clin_data$clin))
 #Immunosuppression
 table(clin_data$Induction..Bxb..1..or.rATg..2..none..0..)
 
-summary(glm(summaryMatrix$Alpha_Beta_ratio_expression~clin_data$clin+factor(clin_data$Induction..Bxb..1..or.rATg..2..none..0..))) #
-boxplot(summaryMatrix$Alpha_Beta[which(clin=="STA")]~clin_data$Induction..Bxb..1..or.rATg..2..none..0..[which(clin=="STA")],col=COLOR)
+####Statistical Analysis considering the clinical_data
+summary(glm(summaryMatrix$Alpha_Beta_ratio_expression~clin_data$TimepostTX..months.)) # p-value=0.02
+summary(glm(summaryMatrix$Alpha_Beta_ratio_expression~clin_data$clin+clin_data$TimepostTX..months.)) # p(STA vs CMR) = 0.01, p(STA vs AMR) = 0.003 p(time)=0.6
+boxplot(summaryMatrix$Alpha_Beta[which(clin=="STA")]~clin_data$DSA_HLA.class..0.neg..1.class.I..2.class.II..3.class.I.and.II.[which(clin=="STA")],col=COLOR)
 
-summary(glm(summaryMatrix$Alpha_Beta[which(clin=="STA")]~factor(clin_data$Induction..Bxb..1..or.rATg..2..none..0..[which(clin=="STA")])))
-
+dataToplot<-data.frame(cbind(summaryMatrix$Alpha_Beta_ratio_expression,clin_data$TimepostTX..months.,clin_data$clin))
+colnames(dataToplot)<-c("AB_GD_ratio","Time","Clin")
+dataToplot$Clin<-relevel(dataToplot$Clin,ref="AMR")
+tiff("Results/MIXCR/Plot_ratio_time.tiff",res=300,w=2000,h=1500)
+ggplot(dataToplot,aes(AB_GD_ratio,Time,fill=Clin)) +
+  geom_point(aes(color=Clin),cex=3) + scale_fill_manual(values = COLOR) +
+  xlab(expression(paste(alpha,beta,"/",gamma,delta,"_ratio"))) + ylab("Time") + xlim(.85, 1)
+dev.off()
 
 #####################
 #### GTEX data ######
