@@ -27,18 +27,23 @@ setwd(working_directory)
 
 ###Load the data
 load("Data/norm_data_rlog_filter.Rdata")
+###Delete the Chromosome M
+annotation<-annotation[which(annotation$Chr!="chrM"),]
+annotation$Chr<-factor(annotation$Chr)
+id<-match(rownames(norm_data_rlog),annotation$Ensemble_id)
+norm_data_rlog<-norm_data_rlog[which(is.na(id)==F),] #26526
 
 results_multi<-read.csv("Results/RNAseq/results_AMR_CMR_STA_ENET.csv")
 results_AMR_STA<-read.csv("Results/RNAseq/results_STA_AMR_ENET.csv")
 results_AMR_CMR<-read.csv("Results/RNAseq/results_CMR_AMR_ENET.csv")
-results_REJ_STA<-read.csv("Results/RNAseq/results_REJ_STA_ENE_codingT.csv")
-results_REJ_STA_DESeq<-read.csv("Results/RNAseq/results_STA_REJ_DEseq.csv")
+results_REJ_STA<-read.csv("Results/RNAseq/results_REJ_STA_ENET.csv")
+results_REJ_STA_DESeq<-read.csv("Results/RNAseq/results_STA_REJ_DEseq_coding.csv")
 
 ##### Clinical Data Analysis #######
 clinData<-read.csv("Data/ClinicalData.csv")
 clinData<-clinData[order(clinData$Individual_id),]
 clinData<-clinData[which(clinData$Individual_id!="M1" & clinData$Individual_id!="M2" & clinData$Individual_id!="M3" & clinData$Individual_id!="M4"),]
-clinData$clin<-c(rep("CMR",13),rep("AMR",12),rep("STA",12))
+clinData$clin<-c(rep("TCMR",13),rep("AMR",12),rep("STA",12))
 
 ##### Demographics ####
 #donor age
@@ -254,22 +259,11 @@ table(results_multi$type_gene)
 table(results_multi$cluster)
 table(results_multi$type_gene,results_multi$cluster)
 results_multi$type_gene_2<-ifelse(results_multi$type_gene!="protein_coding","non-coding","coding")
-
-### AMR in non-coding
-counts=matrix(data=c(16,32,39,63),nrow=2)
-fisher.test(counts) #p-value = 0.8
-
-### CMR in non-coding
-counts=matrix(data=c(6,16,39,63),nrow=2)
-fisher.test(counts) #p-value = 0.5
-
-### STA in non-coding
-counts=matrix(data=c(15,15,39,63),nrow=2)
-fisher.test(counts) #p-value = 0.3
+table(results_multi$type_gene_2,results_multi$cluster)
 
 ##Is enriched respect the selected in the STA?
 tab<-table(results_multi$cluster,results_multi$type_gene_2)
-fisher.test(tab) #p-value = 0.2
+fisher.test(tab) #p-value = 0.4
 
 ################################
 ### Overlap between results ###
@@ -366,9 +360,9 @@ edges$color<-ifelse(edges$coef<0,"darkgoldenrod3","gray56")
 Genes<-as.character(unique(edges$Genes))
 #All genes significant in the DE analysis
 #Genes<-as.character(results$name)
-id_AMR<-na.omit(match(results_multi$name[which(results_multi$cluster=="AMR")],Genes))
-id_CMR<-na.omit(match(results_multi$name[which(results_multi$cluster=="CMR")],Genes))
-id_STA<-na.omit(match(results_multi$name[which(results_multi$cluster=="STA")],Genes))
+id_AMR<-na.omit(match(results_multi$name[which(results_multi$cluster==1)],Genes))
+id_CMR<-na.omit(match(results_multi$name[which(results_multi$cluster==3)],Genes))
+id_STA<-na.omit(match(results_multi$name[which(results_multi$cluster==2)],Genes))
 
 nodes<-c(Genes[id_AMR],Genes[id_CMR],Genes[id_STA],colnames(clin_vars))
 COLOR = brewer.pal(4,"Pastel1")
@@ -377,16 +371,16 @@ nodes<-cbind(nodes,c(rep(COLOR[1],length(id_AMR)),rep(COLOR[2],length(id_CMR)),
 nodes<-data.frame(cbind(nodes,c(rep(5,length(Genes)),rep(10,ncol(clin_vars)))))
 colnames(nodes)<-c("names","color","size")
 nodes$size<-as.numeric(as.character(nodes$size))
-nodes<-nodes[-90,]
+#nodes<-nodes[-90,]
 #Make the graph and plot
 net <- graph_from_data_frame(d = edges, vertices = nodes,directed = F)
 
 E(net)$width<-E(net)$pvalue
-tiff(paste("Results/RNAseq/network_lm_fdr_05.tiff",sep=""),res=300,h=5000,w=5000)
+tiff(paste("Results/RNAseq/network.tiff",sep=""),res=300,h=5000,w=5000)
 l <- layout_with_fr(net)
 l <- norm_coords(l, ymin=-1, ymax=1, xmin=-1, xmax=1)
 plot(net,vertex.label.color="black",vertex.label.cex=1.3,layout=l*1,rescale=F)
-legend("topleft", c("AMR","CMR", "STA","Clin"), pch=20,
+legend("topleft", c("AMR","TCMR", "STA","Clin"), pch=20,
        col=COLOR[1:4],  pt.cex=5,cex=1.5, bty="n", ncol=1)
 legend("bottomleft", c("Neg-association","Pos-associatiom"), lty=1,lwd=5,
        col=c("darkgoldenrod3","gray56"), cex=1.5, bty="n", ncol=1)
@@ -428,9 +422,9 @@ for (i in 1:ncol(norm_data_rlog_noncoding)){
 }
 pvalue_adj<-p.adjust(pvalue,method = "fdr")  
 maxp<-max(pvalue_adj[which(pvalue_adj<0.05)])
-grep(maxp, pvalue_adj) #position 1096
+grep(maxp, pvalue_adj) #position 690
 pvalue_array<-as.numeric(pvalue)
-fdr_value<-pvalue_array[1096] #pvalue=0.01070372 ##This is the FDR correction < 0.05
+fdr_value<-pvalue_array[690] #pvalue=0.01070372 ##This is the FDR correction < 0.05
 
 ##2. Build the matrix
 lm_pvalue<-rep(NA,ncol(norm_data_rlog_coding))
@@ -457,13 +451,14 @@ noncoding_df<- data.frame(
   pvalue = unlist(lm_noncoding_p), coef = unlist(lm_noncoding_p))
 
 join_non_coding<-inner_join(noncoding_df,results_multi,by=c("Genes_noncod"="name"))
-join_non_coding<-join_non_coding[,c(1:4,10,14)]
+join_non_coding<-join_non_coding[,c(1:4,9,13)]
 colnames(join_non_coding)[5:6]<-c("type_noncod","cluster_noncod")
 join_coding<-inner_join(join_non_coding,results_multi,by=c("Genes_cod"="name"))
-join_coding<-join_coding[,c(1:6,16)]
+join_coding<-join_coding[,c(1:6,15)]
 colnames(join_coding)[7]<-c("cluster_cod")
 noncoding_df<-join_coding
 write.csv(noncoding_df,"Results/RNAseq/results_noncoding.csv")
+
 
 ###After looking for the GO biological terms in EnrichR
 noncoding_df_GO<-read.csv("Results/RNAseq/results_noncoding_GO.csv")
@@ -485,7 +480,7 @@ cordist <- function(dat) {
 
 ###Find the significant genes in the normalize data
 coding_genes<-unique(as.character(noncoding_df$Genes_cod))
-coding_genes[26]<-"SEPT2"
+#coding_genes[26]<-"SEPT2"
 non_coding_genes<-unique(as.character(noncoding_df$Genes_noncod))
 genes_results<-c(coding_genes,non_coding_genes)
 id<-match(genes_results,annotation$name)
@@ -501,18 +496,23 @@ sim_matrix_2<-sim_matrix[id_coding,id_noncoding]
   
 ###Find which cluster is up-regulated
 results_multi$name<-as.character(results_multi$name)
-results_multi$name[19]<-c("SEPT2")
+#results_multi$name[19]<-c("SEPT2")
 cluster_coding<-results_multi$cluster[match(rownames(sim_matrix_2),results_multi$name)]
 cluster_noncoding<-results_multi$cluster[match(colnames(sim_matrix_2),results_multi$name)]
 COLOR = brewer.pal(4,"Pastel1")
-ann_colors = list(cluster_coding = c("AMR" = COLOR [1] ,"CMR" = COLOR[2], "STA" = COLOR[3]),
-                  cluster_noncoding  = c("AMR" = COLOR [1] ,"CMR" = COLOR[2], "STA" = COLOR[3]))
+ann_colors = list(cluster_coding = c("AMR" = COLOR [1] ,"TCMR" = COLOR[2], "STA" = COLOR[3]),
+                  cluster_noncoding  = c("AMR" = COLOR [1] ,"TCMR" = COLOR[2], "STA" = COLOR[3]))
 names(cluster_coding)<-rownames(sim_matrix_2)
 names(cluster_noncoding)<-colnames(sim_matrix_2)
 
+anno_row<-as.data.frame(ifelse(cluster_coding==1,"AMR",ifelse(cluster_coding==2,"TCMR","STA")))
+colnames(anno_row)<-"cluster_coding"
+anno_col<-as.data.frame(ifelse(cluster_noncoding==1,"AMR",ifelse(cluster_noncoding==2,"TCMR","STA")))
+colnames(anno_col)<-"cluster_noncoding"
+
 tiff("Results/RNAseq/SimilarityMatrix.tiff",res=300,h=3000,w=4000)
 pheatmap(sim_matrix_2,border_color=F,annotation_colors = ann_colors,
-         annotation_row = as.data.frame(cluster_coding),annotation_col=as.data.frame(cluster_noncoding))
+         annotation_row = anno_row,annotation_col=anno_col)
 dev.off()
 
 
@@ -520,17 +520,13 @@ dev.off()
 ## Match with microarray data ##
 ###############################
 geneMicroarray<-read.csv("Data/MicroaarayGeneList.csv")
-match(results_multi$name,geneMicroarray$GeneSymbol)
-match(results_AMR_CMR$name,geneMicroarray$GeneSymbol)
-match(results_AMR_STA$name,geneMicroarray$GeneSymbol)
-geneMicroarray$GeneSymbol[na.omit(match(results_REJ_STA$name,geneMicroarray$GeneSymbol))]
+length(geneMicroarray$GeneSymbol[na.omit(match(results_REJ_STA_DESeq$name,geneMicroarray$GeneSymbol))])
 
 geneKsort<-read.csv("Data/kSORT_list.csv")
-match(results_REJ_STA$name,geneKsort$Genes)
-match(results_STA_REJ_DEseq$name,geneKsort$Genes)
+length(na.omit(match(results_REJ_STA_DESeq$name,geneKsort$Genes)))
 
 geneKurian<-read.csv("Data/kurian_genelist.csv")
-geneKurian$Symbol[na.omit(match(results_REJ_STA$name,geneKurian$Symbol))]
+length(geneKurian$Symbol[na.omit(match(results_REJ_STA_DESeq$name,geneKurian$Symbol))])
 
 #############################
 ## Match with ExomeSeq #####
