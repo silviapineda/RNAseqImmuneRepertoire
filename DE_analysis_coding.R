@@ -64,25 +64,36 @@ normalized_rlog <- rlog(dds_filter, blind=F)
 norm_data_rlog<-assay(normalized_rlog)
 
 ##save results
-clin<-ifelse(clin=="AMR", "ABMR",
+clin<-ifelse(clin=="AMR", "AMR",
              ifelse(clin=="CMR","TCMR","STA"))
 save(norm_data_rlog,clin,annotation,file="Data/norm_data_rlog_filter.Rdata")
-clin2<-ifelse(clin=="AMR" | clin=="CMR", "REJ","STA")
+
+clin2<-ifelse(clin=="AMR" | clin=="TCMR", "REJ","STA")
 save(norm_data_rlog,clin2,annotation,file="Data/norm_data_rlog_filter_REJSTA.Rdata")
 
 load("Data/norm_data_rlog_filter.Rdata")
+
 ###To find which ones are coding and which ones are non coding
 annotation_coding<-annotation[which(annotation$type_gene=="protein_coding"),]
 id_genes<-match(annotation_coding$Ensemble_id,rownames(dds_filter))
 dds_filter_coding<-dds_filter[na.omit(id_genes),] #only coding
-norm_data_rlog_coding<-norm_data_rlog[na.omit(id_genes),]
-  
-dds <- DESeq(dds_filter_coding) # N.B. Takes ~ 2 min.
-res1 <- results(dds, contrast=c("type","ABMR", "STA"), alpha = .05) #length(which(res1$padj<0.05)) 4223
-res2 <- results(dds, contrast=c("type","TCMR","STA"), alpha = .05) #length(which(res2$padj<0.05)) 0
-res3 <- results(dds, contrast=c("type","ABMR","TCMR"), alpha = .05) #length(which(res3$padj<0.05)) 2,442
+norm_data_rlog_coding<-norm_data_rlog[na.omit(id_genes),] #15420
 
-dds<-DESeq(dds_filter_coding)
+###Delete the Chromosome M
+annotation<-annotation[which(annotation$Chr!="chrM"),]
+annotation$Chr<-factor(annotation$Chr)
+id<-match(rownames(norm_data_rlog_coding),annotation$Ensemble_id)
+norm_data_rlog_coding<-norm_data_rlog_coding[which(is.na(id)==F),]
+id<-match(rownames(dds_filter_coding),annotation$Ensemble_id)
+dds_filter_coding_2<-dds_filter_coding[which(is.na(id)==F),] #15407
+
+
+dds <- DESeq(dds_filter_coding_2) # N.B. Takes ~ 2 min.
+res1 <- results(dds, contrast=c("type","ABMR", "STA"), alpha = .05) #length(which(res1$padj<0.05)) 4221
+res2 <- results(dds, contrast=c("type","TCMR","STA"), alpha = .05) #length(which(res2$padj<0.05)) 0
+res3 <- results(dds, contrast=c("type","ABMR","TCMR"), alpha = .05) #length(which(res3$padj<0.05)) 2,092
+
+dds<-DESeq(dds_filter_coding_2)
 res4 <- results(dds, contrast=c("type","REJ","STA"), alpha = .05) #length(which(res3$padj<0.05)) 2095
 
 ##################
@@ -96,8 +107,8 @@ genes_sign <- allgenes[which(res1$padj < 0.05)]
 id_sign<-match(genes_sign,annotation$Ensemble_id)
 annotation_sign<-annotation[id_sign,] 
 annotation_sign$log2FC<-res1$log2FoldChange[which(res1$padj < 0.05)]
-results_STA_AMR_DEseq<-annotation_sign #4223
-results_STA_AMR_DEseq_FC<-results_STA_AMR_DEseq[which(abs(results_STA_AMR_DEseq$log2FC)>0.585),] #3544
+results_STA_AMR_DEseq<-annotation_sign #4221
+results_STA_AMR_DEseq_FC<-results_STA_AMR_DEseq[which(abs(results_STA_AMR_DEseq$log2FC)>0.585),] #3541
 write.csv(results_STA_AMR_DEseq, "Results/RNAseq/results_STA_AMR_DEseq_coding.csv", row.names = F)
 write.csv(results_STA_AMR_DEseq_FC, "Results/RNAseq/results_STA_AMR_DEseq_FC_coding.csv", row.names = F)
 
@@ -105,20 +116,20 @@ COLOR = brewer.pal(4,"Pastel1")
 
 ###Plot the results
 tiff(filename = "Results/RNAseq/heatmap_AMR_STA_Dseq2_coding.tiff", width = 4000, height = 3000,  res = 300)
-plot_heatmap(clin,norm_data_rlog_coding, "ABMR", "STA", results_STA_AMR_DEseq, color=COLOR[c(3,1)])
+plot_heatmap(clin,norm_data_rlog_coding, "AMR", "STA", results_STA_AMR_DEseq, color=COLOR[c(1,3)])
 dev.off()
 
 #2. ENET with binomial distribution
-results_STA_AMR_ENET<-ENET_binomial(clin, "ABMR", "STA", norm_data_rlog_coding) ##50 genes
+results_STA_AMR_ENET<-ENET_binomial(clin, "AMR", "STA", norm_data_rlog_coding) ##50 genes
 write.csv(results_STA_AMR_ENET,"Results/RNAseq/results_STA_AMR_ENET_coding.csv",row.names = F)
 
 ##load the results
 tiff(filename = "Results/RNAseq/heatmap_AMR_STA_ENET_coding.tiff", width = 4000, height = 3000,  res = 300)
-plot_heatmap(clin,norm_data_rlog_coding, "ABMR", "STA", results_STA_AMR_ENET, color=COLOR[c(3,1)])
+plot_heatmap(clin,norm_data_rlog_coding, "AMR", "STA", results_STA_AMR_ENET, color=COLOR[c(1,3)])
 dev.off()
 
 id_overlap<-match(results_STA_AMR_ENET$name,results_STA_AMR_DEseq$name)
-length(which(is.na(id_overlap)==FALSE))
+length(which(is.na(id_overlap)==FALSE)) #45
 
 ###cluster and similarity
 results_STA_AMR_ENET<-read.csv("Results/RNAseq/results_STA_AMR_ENET_coding.csv")
@@ -139,7 +150,7 @@ cluster_similarity(hc.cut$cluster,clin_2)
 ##################
 ### CMR vs STA ###
 ##################
-results_CMR_STA_ENET<-ENET_binomial(clin, "STA", "TCMR", norm_data_rlog_coding) ##1073 genes
+results_CMR_STA_ENET<-ENET_binomial(clin, "STA", "TCMR", norm_data_rlog_coding) ##1 gene
 
 
 ##################
@@ -153,26 +164,26 @@ genes_sign <- allgenes[which(res3$padj < 0.05)]
 id_sign<-match(genes_sign,annotation$Ensemble_id)
 annotation_sign<-annotation[id_sign,] 
 annotation_sign$log2FC<-res3$log2FoldChange[which(res3$padj < 0.05)]
-results_CMR_AMR_DEseq<-annotation_sign #2095
-results_CMR_AMR_DEseq_FC<-results_CMR_AMR_DEseq[which(abs(results_CMR_AMR_DEseq$log2FC)>0.585),] #1744
+results_CMR_AMR_DEseq<-annotation_sign #2092
+results_CMR_AMR_DEseq_FC<-results_CMR_AMR_DEseq[which(abs(results_CMR_AMR_DEseq$log2FC)>0.585),] #1739
 write.csv(results_CMR_AMR_DEseq, "Results/RNAseq/results_CMR_AMR_DEseq_coding.csv", row.names = F) 
 write.csv(results_CMR_AMR_DEseq_FC, "Results/RNAseq/results_CMR_AMR_DEseq_FC_coding.csv", row.names = F)
 
 ###Plot the results
 tiff(filename = "Results/RNAseq/heatmap_CMR_AMR_Dseq2_coding.tiff", width = 4000, height = 3000,  res = 300)
-plot_heatmap(clin,norm_data_rlog_coding, "ABMR", "TCMR", results_CMR_AMR_DEseq, color=COLOR[c(2,1)])
+plot_heatmap(clin,norm_data_rlog_coding, "AMR", "TCMR", results_CMR_AMR_DEseq, color=COLOR[c(1,2)])
 dev.off()
 
 #2. ENET with binomial distribution
-results_CMR_AMR_ENET<-ENET_binomial(clin, "ABMR", "TCMR", norm_data_rlog_coding) ##1073 genes
+results_CMR_AMR_ENET<-ENET_binomial(clin, "AMR", "TCMR", norm_data_rlog_coding) ##1073 genes
 write.csv(results_CMR_AMR_ENET,"Results/RNAseq/results_CMR_AMR_ENET_coding.csv",row.names = F)
 
 tiff(filename = "Results/RNAseq/heatmap_AMR_CMR_ENET_coding.tiff", width = 4000, height = 3000,  res = 300)
-plot_heatmap(clin,norm_data_rlog_coding, "ABMR", "TCMR", results_CMR_AMR_ENET, color=COLOR[c(2,1)])
+plot_heatmap(clin,norm_data_rlog_coding, "AMR", "TCMR", results_CMR_AMR_ENET, color=COLOR[c(1,2)])
 dev.off()
 
 id_overlap<-match(results_CMR_AMR_ENET$name,results_CMR_AMR_DEseq$name)
-length(which(is.na(id_overlap)==FALSE))
+length(which(is.na(id_overlap)==FALSE)) #538
 
 ###cluster and similarity
 results_CMR_AMR_ENET<-read.csv("Results/RNAseq/results_CMR_AMR_DEseq_FC_coding.csv")
@@ -199,14 +210,15 @@ genes_sign <- allgenes[which(res4$padj < 0.05)]
 id_sign<-match(genes_sign,annotation$Ensemble_id)
 annotation_sign<-annotation[id_sign,] 
 annotation_sign$log2FC<-res4$log2FoldChange[which(res4$padj < 0.05)]
-results_STA_REJ_DEseq<-annotation_sign #1105
-results_STA_REJ_DEseq_FC<-results_STA_REJ_DEseq[which(abs(results_STA_REJ_DEseq$log2FC)>0.585),] #880
+results_STA_REJ_DEseq<-annotation_sign #1094
+results_STA_REJ_DEseq_FC<-results_STA_REJ_DEseq[which(abs(results_STA_REJ_DEseq$log2FC)>0.585),] #875
 write.csv(results_STA_REJ_DEseq, "Results/RNAseq/results_STA_REJ_DEseq_coding.csv", row.names = F)
+write.csv(results_STA_REJ_DEseq_FC, "Results/RNAseq/results_STA_REJ_DEseq_coding_FC.csv", row.names = F)
 COLOR = brewer.pal(4,"Pastel1")
 
 ###Plot the results
-tiff(filename = "Results/RNAseq/heatmap_REJ_STA_Dseq2_coding.tiff", width = 4000, height = 3000,  res = 300)
-plot_heatmap(clin2,norm_data_rlog, "REJ", "STA", results_STA_REJ_DEseq, color=COLOR[c(3,1)])
+tiff(filename = "Results/RNAseq/heatmap_REJ_STA_Dseq2_coding_FC.tiff", width = 4000, height = 3000,  res = 300)
+plot_heatmap(clin2,norm_data_rlog, "REJ", "STA", results_STA_REJ_DEseq_FC, color=COLOR[c(4,1)])
 dev.off()
 
 #2. ENET with binomial distribution
@@ -214,11 +226,11 @@ results_REJ_STA_ENET<-ENET_binomial(clin2, "REJ", "STA", norm_data_rlog_coding) 
 write.csv(results_REJ_STA_ENET,"Results/RNAseq/results_REJ_STA_ENET_coding.csv",row.names = F)
 
 tiff(filename = "Results/RNAseq/heatmap_REJ_STA_ENET_coding.tiff", width = 4000, height = 3000,  res = 300)
-out<-plot_heatmap(clin2,norm_data_rlog, "REJ", "STA", results_REJ_STA_ENET, color=COLOR[c(2,3)])
+out<-plot_heatmap(clin2,norm_data_rlog, "REJ", "STA", results_REJ_STA_ENET, color=COLOR[c(4,1)])
 dev.off()
 
 id_overlap<-match(results_REJ_STA_ENET$name,results_STA_REJ_DEseq$name)
-length(which(is.na(id_overlap)==FALSE))
+length(which(is.na(id_overlap)==FALSE)) #205
 
 ###cluster and similarity
 results_REJ_STA_ENET<-read.csv("Results/RNAseq/results_REJ_STA_ENET_coding.csv")
@@ -297,7 +309,7 @@ rownames <- colnames(significantResults)
 annotation.col <- data.frame(row.names = rownames)
 annotation.col$Type <- factor(clin)
 COLOR = brewer.pal(4,"Pastel1")
-ann_colors = list(Type = c("ABMR" = COLOR [1] ,"TCMR" = COLOR[2], "STA" = COLOR[3]))
+ann_colors = list(Type = c("AMR" = COLOR [1] ,"TCMR" = COLOR[2], "STA" = COLOR[3]))
 
 tiff(filename = "Results/RNAseq/heatmap_AMR_CMR_STA_ENET_coding.tiff", width = 3000, height = 3500, res = 300)
 out<-pheatmap(xtst, annotation = annotation.col,border_color=F, annotation_colors = ann_colors,show_rownames=T)
