@@ -21,12 +21,18 @@ library("glmnet")
 library("GISTools")
 library(factoextra)
 require("cluster")
+library("clusteval")
 
 working_directory<-"/Users/Pinedasans/ImmuneRep_RNAseq/"
 setwd(working_directory)
 
-load("Data/RNAseqProcessedNormalized.Rdata")
 load("Data/norm_data_rlog_filter.Rdata")
+###Delete the Chromosome M
+annotation<-annotation[which(annotation$Chr!="chrM"),]
+annotation$Chr<-factor(annotation$Chr)
+id<-match(rownames(norm_data_rlog),annotation$Ensemble_id)
+norm_data_rlog<-norm_data_rlog[which(is.na(id)==F),] #26526
+
 ###############################################
 ### permutation analysis for the clustering ##
 ##############################################
@@ -80,7 +86,7 @@ for (i in 1:10){
     annotation.col <- data.frame(row.names = rownames)
     annotation.col$Type <- factor(clin_perm)
     COLOR = brewer.pal(4,"Pastel1")
-    ann_colors = list(Type = c("AMR" = COLOR [1] ,"CMR" = COLOR[2], "STA" = COLOR[3]))
+    ann_colors = list(Type = c("AMR" = COLOR [1] ,"TCMR" = COLOR[2], "STA" = COLOR[3]))
     
     tiff(filename = paste0("Results/RNAseq/heatmap_perm",i,".tiff"), width = 3000, height = 2000, res = 300)
     pheatmap(xtst, annotation = annotation.col,border_color=F, annotation_colors = ann_colors,show_rownames=T)
@@ -88,27 +94,17 @@ for (i in 1:10){
     
     #3. Obtain similarity measure
     hc.cut <- hcut(t(xtst), k = 3, hc_method = "complete")
-    similarity[i]<-cluster_similarity(hc.cut$cluster,clin_perm) 
+    similarity[i]<-cluster_similarity(hc.cut$cluster,data.frame(clin_perm)[,1]) 
+    COLOR = brewer.pal(4,"Pastel1")
+    ##clsuter plot
+    tiff(filename = paste0("Results/RNAseq/cluster_perm",i,".tiff"), width = 2000, height = 2000, res = 300)
+    fviz_cluster(hc.cut, t(significantResults),ellipse.type = "norm",palette=COLOR[c(2,1,3)]) + theme_minimal()
+    dev.off()
+    
   } else {
     similarity[i]<-0
   }
 }
+
+#Similarity: 0.0000000 0.5800712 0.3746959 0.0000000 0.3333333 0.0000000 0.3786127 0.3076923 0.3611940 0.3692308
 mean(similarity) ##0.27
-
-
-obtain_cluster_perm <- function(xtst,significantResults){
-  COLOR = brewer.pal(4,"Pastel1")
-  ## Obtain the clusterization
-  hc.cut <- hcut(t(xtst), k = 3, hc_method = "complete")
-  ##clsuter plot
-  fviz_cluster(hc.cut, t(significantResults),ellipse.type = "norm",palette=COLOR[c(2,1,3)]) + theme_minimal()
-  return(hc.cut$cluster)
-}
-
-obtain_sil_perm <- function(xtst){
-  COLOR = brewer.pal(4,"Pastel1")
-  ## Obtain the clusterization
-  hc.cut <- hcut(t(xtst), k = 3, hc_method = "complete")
-  fviz_silhouette(hc.cut,palette=COLOR[c(2,1,3)])
-}
-
