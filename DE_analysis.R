@@ -61,7 +61,7 @@ dds <- DESeqDataSetFromMatrix(count_rsem_genes, coldata, ~ type) ##60,498
 dds_filter <-  dds[rowSums(fpm(dds) > 0.5) >= 2] #26,545
 dds_filter$type <- relevel(dds_filter$type, ref = "STA")
 ##normalized with rlog
-normalized_rlog <- rlog(dds_filter, blind=F) 
+normalized_rlog <- rlog(dds_filter, blind=T) #for visualization, clustering, or machine learning applications recommended blind=FALSE.
 norm_data_rlog<-assay(normalized_rlog) #26,545
 
 ##save results
